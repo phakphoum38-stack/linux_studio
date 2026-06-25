@@ -1,0 +1,41 @@
+git pushapp: name: Linux Studio package_id: 
+  com.phakphoum38.linuxstudio version: 0.1.0+1
+
+platforms:
+  - ios
+  - android
+
+modules:
+  terminal:
+    enabled: true
+
+  file_manager:
+    enabled: true
+
+  package_manager:
+    enabled: true
+
+  ish:
+    enabled: true
+    repository: https://github.com/phakphoum38-stack/ish.git
+    path: native/ish_core
+
+  desktop_vnc:
+    enabled: true
+
+experimental:
+  qemu:
+    enabled: false
+
+  x11:
+    enabled: false
+
+  vm_manager:
+    enabled: false
+
+build:
+  ios:
+    no_codesign: true
+
+  android:
+    enabled: true
