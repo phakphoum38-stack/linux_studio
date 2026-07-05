@@ -1,21 +1,17 @@
 class ScrollbackBuffer {
-  final int maxLines;
+  final List<String> lines = [];
 
-  final List<String> _lines = [];
-
-  ScrollbackBuffer({this.maxLines = 2000});
-
-  List<String> get lines => _lines;
+  int maxSize = 1000;
 
   void add(String line) {
-    _lines.add(line);
+    lines.add(line);
 
-    if (_lines.length > maxLines) {
-      _lines.removeAt(0);
+    if (lines.length > maxSize) {
+      lines.removeAt(0);
     }
   }
 
-  void clear() {
-    _lines.clear();
+  List<String> getVisible(int start, int end) {
+    return lines.sublist(start, end.clamp(0, lines.length));
   }
 }

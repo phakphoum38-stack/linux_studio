@@ -1,68 +1,44 @@
-import 'terminal_cell.dart';
-import 'cursor.dart';
-import 'selection.dart';
-import 'utf8_helper.dart';
+class ScreenCell {
+  String char;
+  int fg;
+  int bg;
+
+  ScreenCell(this.char, this.fg, this.bg);
+}
 
 class ScreenBuffer {
-  final int rows;
-  final int cols;
+  final int width;
+  final int height;
 
-  late List<List<TerminalCell>> buffer;
+  late List<List<ScreenCell>> buffer;
 
-  final Cursor cursor = Cursor();
-  final Selection selection = Selection();
-
-  int fg = 7;
-  int bg = 0;
-
-  ScreenBuffer({
-    required this.rows,
-    required this.cols,
-  }) {
+  ScreenBuffer(this.width, this.height) {
     buffer = List.generate(
-      rows,
-      (_) => List.generate(cols, (_) => TerminalCell()),
+      height,
+      (_) => List.generate(width, (_) => ScreenCell(' ', 37, 40)),
     );
   }
 
+  void setChar(int row, int col, String char) {
+    if (!_inBounds(row, col)) return;
+    buffer[row][col].char = char;
+  }
+
   void clear() {
-    for (final row in buffer) {
-      for (final cell in row) {
-        cell.reset();
+    for (var r = 0; r < height; r++) {
+      for (var c = 0; c < width; c++) {
+        buffer[r][c] = ScreenCell(' ', 37, 40);
       }
     }
-
-    cursor.reset();
   }
 
-  void write(String text) {
-    final chars = Utf8Helper.safeSplit(text);
-
-    for (final ch in chars) {
-      _writeChar(ch);
+  void clearLine(int row) {
+    if (row < 0 || row >= height) return;
+    for (var c = 0; c < width; c++) {
+      buffer[row][c] = ScreenCell(' ', 37, 40);
     }
   }
 
-  void _writeChar(String ch) {
-    if (ch == '\n') {
-      cursor.row++;
-      cursor.col = 0;
-      return;
-    }
-
-    if (cursor.row >= rows) return;
-
-    final cell = buffer[cursor.row][cursor.col];
-
-    cell.char = ch;
-    cell.fg = fg;
-    cell.bg = bg;
-
-    cursor.col++;
-
-    if (cursor.col >= cols) {
-      cursor.col = 0;
-      cursor.row++;
-    }
-  }
+  bool _inBounds(int r, int c) =>
+      r >= 0 && r < height && c >= 0 && c < width;
 }
