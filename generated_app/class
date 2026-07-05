@@ -1,0 +1,88 @@
+class Cell {
+  String char;
+  String color;
+
+  Cell(this.char, {this.color = 'default'});
+}
+import 'ansi_parser.dart';
+
+class ScreenBuffer {
+  final int rows;
+  final int cols;
+
+  late List<List<Cell>> grid;
+
+  int cursorRow = 0;
+  int cursorCol = 0;
+
+  String currentColor = 'default';
+
+  ScreenBuffer(this.rows, this.cols) {
+    grid = List.generate(
+      rows,
+      (_) => List.generate(cols, (_) => Cell(' ')),
+    );
+  }
+
+  void setColor(String color) {
+    currentColor = color;
+  }
+
+  void writeChar(String char) {
+    if (char == '\n') {
+      _newLine();
+      return;
+    }
+
+    grid[cursorRow][cursorCol] =
+        Cell(char, color: currentColor);
+
+    cursorCol++;
+
+    if (cursorCol >= cols) {
+      _newLine();
+    }
+  }
+
+  void writeString(String text) {
+    final regex = RegExp(r'\x1b\[[0-9;]*m');
+
+    final parts = text.split(regex);
+    final matches = regex.allMatches(text).toList();
+
+    int i = 0;
+
+    for (final part in parts) {
+      for (final c in part.split('')) {
+        writeChar(c);
+      }
+
+      if (i < matches.length) {
+        final code = matches[i].group(0)!;
+
+        if (code.contains('31')) setColor('red');
+        if (code.contains('32')) setColor('green');
+        if (code.contains('33')) setColor('yellow');
+        if (code.contains('34')) setColor('blue');
+        if (code.contains('0m')) setColor('default');
+
+        i++;
+      }
+    }
+  }
+
+  void _newLine() {
+    cursorRow++;
+    cursorCol = 0;
+
+    if (cursorRow >= rows) {
+      scrollUp();
+      cursorRow = rows - 1;
+    }
+  }
+
+  void scrollUp() {
+    grid.removeAt(0);
+    grid.add(List.generate(cols, (_) => Cell(' ')));
+  }
+}
