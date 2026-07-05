@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/engine/terminal_engine.dart';
+import '../core/engine/pty_bridge.dart';
 
 class TerminalScreen extends StatefulWidget {
   const TerminalScreen({super.key});
@@ -9,37 +9,50 @@ class TerminalScreen extends StatefulWidget {
 }
 
 class _TerminalScreenState extends State<TerminalScreen> {
-  final controller = TextEditingController();
-  final engine = TerminalEngine();
+  final TextEditingController controller = TextEditingController();
+  final ScrollController scrollController = ScrollController();
 
   final List<String> output = [];
+
+  final PtyBridge bridge = PtyBridge();
 
   @override
   void initState() {
     super.initState();
 
-    engine.start((data) {
+    bridge.onOutput = (data) {
       setState(() {
         output.add(data);
       });
-    });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(
+            scrollController.position.maxScrollExtent,
+          );
+        }
+      });
+    };
+
+    bridge.start();
   }
 
-  void run(String cmd) {
+  void runCommand(String cmd) {
     if (cmd.trim().isEmpty) return;
 
     setState(() {
-      output.add('\$ $cmd');
+      output.add("\$ $cmd");
     });
 
-    engine.write(cmd);
+    bridge.write(cmd);
     controller.clear();
   }
 
   @override
   void dispose() {
-    engine.dispose();
+    bridge.kill();
     controller.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 
@@ -53,13 +66,15 @@ class _TerminalScreenState extends State<TerminalScreen> {
             color: Colors.black,
             padding: const EdgeInsets.all(12),
             child: ListView.builder(
+              controller: scrollController,
               itemCount: output.length,
-              itemBuilder: (_, i) {
-                return Text(
-                  output[i],
+              itemBuilder: (context, index) {
+                return SelectableText(
+                  output[index],
                   style: const TextStyle(
                     color: Colors.greenAccent,
                     fontFamily: 'monospace',
+                    fontSize: 13,
                   ),
                 );
               },
@@ -74,17 +89,20 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 controller: controller,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
-                  hintText: 'bash command...',
+                  hintText: "Enter command...",
                   hintStyle: TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: Colors.black87,
+                  border: InputBorder.none,
                 ),
-                onSubmitted: run,
+                onSubmitted: runCommand,
               ),
             ),
             IconButton(
               icon: const Icon(Icons.play_arrow),
-              onPressed: () => run(controller.text),
+              onPressed: () {
+                runCommand(controller.text);
+              },
             ),
           ],
         ),

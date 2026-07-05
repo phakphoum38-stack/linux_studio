@@ -1,33 +1,68 @@
+import 'terminal_cell.dart';
+import 'cursor.dart';
+import 'selection.dart';
+import 'utf8_helper.dart';
+
 class ScreenBuffer {
-  final List<String> _lines = [];
+  final int rows;
+  final int cols;
 
-  int maxLines = 500;
+  late List<List<TerminalCell>> buffer;
 
-  List<String> get lines => _lines;
+  final Cursor cursor = Cursor();
+  final Selection selection = Selection();
 
-  void write(String data) {
-    final split = data.split('\n');
+  int fg = 7;
+  int bg = 0;
 
-    for (final line in split) {
-      _lines.add(_clean(line));
-    }
-
-    _trim();
+  ScreenBuffer({
+    required this.rows,
+    required this.cols,
+  }) {
+    buffer = List.generate(
+      rows,
+      (_) => List.generate(cols, (_) => TerminalCell()),
+    );
   }
 
   void clear() {
-    _lines.clear();
+    for (final row in buffer) {
+      for (final cell in row) {
+        cell.reset();
+      }
+    }
+
+    cursor.reset();
   }
 
-  String _clean(String input) {
-    return input
-        .replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '')
-        .replaceAll('\x1B', '');
+  void write(String text) {
+    final chars = Utf8Helper.safeSplit(text);
+
+    for (final ch in chars) {
+      _writeChar(ch);
+    }
   }
 
-  void _trim() {
-    if (_lines.length > maxLines) {
-      _lines.removeRange(0, _lines.length - maxLines);
+  void _writeChar(String ch) {
+    if (ch == '\n') {
+      cursor.row++;
+      cursor.col = 0;
+      return;
+    }
+
+    if (cursor.row >= rows) return;
+
+    final cell = buffer[cursor.row][cursor.col];
+
+    cell.char = ch;
+    cell.fg = fg;
+    cell.bg = bg;
+
+    cursor.col++;
+
+    if (cursor.col >= cols) {
+      cursor.col = 0;
+      cursor.row++;
     }
   }
 }

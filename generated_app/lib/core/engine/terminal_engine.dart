@@ -1,16 +1,16 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
+import 'ansi_csi_parser.dart';
 
 class TerminalEngine {
   Process? _process;
 
-  Function(String data)? onData;
+  final AnsiCsiParser parser = AnsiCsiParser();
 
-  bool get isRunning => _process != null;
+  Function(dynamic event)? onEvent;
 
-  /// start bash session
-  Future<void> start(Function(String data) callback) async {
-    onData = callback;
+  Future<void> start(Function(dynamic event) callback) async {
+    onEvent = callback;
 
     _process = await Process.start(
       'bash',
@@ -18,41 +18,28 @@ class TerminalEngine {
       runInShell: true,
     );
 
-    _process!.stdout
-        .transform(utf8.decoder)
-        .listen((data) {
-      onData?.call(_clean(data));
+    _process!.stdout.transform(utf8.decoder).listen((data) {
+      final events = parser.parse(data);
+
+      for (final e in events) {
+        onEvent?.call(e);
+      }
     });
 
-    _process!.stderr
-        .transform(utf8.decoder)
-        .listen((data) {
-      onData?.call(_clean(data));
+    _process!.stderr.transform(utf8.decoder).listen((data) {
+      final events = parser.parse(data);
+
+      for (final e in events) {
+        onEvent?.call(e);
+      }
     });
   }
 
-  /// send command
   void write(String input) {
-    if (_process == null) return;
-
-    _process!.stdin.writeln(input);
+    _process?.stdin.writeln(input);
   }
 
-  /// raw input (future PTY upgrade)
-  void writeRaw(String input) {
-    _process?.stdin.write(input);
-  }
-
-  /// kill shell
-  void dispose() {
+  void kill() {
     _process?.kill();
-    _process = null;
-  }
-
-  /// basic ANSI cleaner
-  String _clean(String input) {
-    return input
-        .replaceAll('\u001B', '')
-        .replaceAll(RegExp(r'\[[0-9;]*m'), '');
   }
 }
