@@ -34,7 +34,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
       });
     };
 
-    bridge.start();
+    bridge.start("localhost", 22);
   }
 
   void runCommand(String cmd) {
