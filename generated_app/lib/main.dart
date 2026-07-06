@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'screens/terminal_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const LinuxStudioApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class LinuxStudioApp extends StatelessWidget {
+  const LinuxStudioApp({super.key});
 
   @override
   Widget build(BuildContext context) {
