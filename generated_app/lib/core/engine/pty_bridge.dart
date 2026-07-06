@@ -1,10 +1,11 @@
-import 'ansi_stream_parser.dart';
-import 'terminal_state_machine.dart';
 import 'screen_buffer.dart';
+import 'terminal_state_machine.dart';
+import 'ssh_bridge.dart';
 
 class PtyBridge {
   late ScreenBuffer screen;
   late TerminalStateMachine sm;
+  final SshBridge ssh = SshBridge();
 
   Function(String)? onOutput;
 
@@ -14,11 +15,27 @@ class PtyBridge {
   }
 
   void write(String data) {
+    if (ssh.connected) {
+      ssh.write(data);
+    }
+
     sm.feed(data);
     onOutput?.call(data);
   }
 
-  void clear() {
-    screen.clear();
+  Future<void> connectSSH({
+    required String host,
+    required String user,
+    required String pass,
+  }) async {
+    await ssh.connect(
+      host: host,
+      username: user,
+      password: pass,
+    );
+  }
+
+  void kill() {
+    ssh.disconnect();
   }
 }
