@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../engine/screen_buffer.dart';
 
 class TerminalPainter extends CustomPainter {
   final ScreenBuffer screen;
 
   final double fontSize;
-
   final String fontFamily;
 
   TerminalPainter(
@@ -16,19 +16,16 @@ class TerminalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()
-      ..color = Colors.black;
-
     canvas.drawRect(
       Offset.zero & size,
-      bgPaint,
+      Paint()..color = Colors.black,
     );
 
     final textStyle = TextStyle(
-      color: Colors.greenAccent,
-      fontSize: fontSize,
       fontFamily: fontFamily,
+      fontSize: fontSize,
       height: 1.0,
+      color: Colors.white,
     );
 
     final rowHeight = fontSize * 1.25;
@@ -38,11 +35,9 @@ class TerminalPainter extends CustomPainter {
       for (int c = 0; c < screen.width; c++) {
         final cell = screen.buffer[r][c];
 
-        if (cell.char == ' ') {
-          continue;
-        }
+        if (cell.char == ' ') continue;
 
-        final tp = TextPainter(
+        final painter = TextPainter(
           text: TextSpan(
             text: cell.char,
             style: textStyle.copyWith(
@@ -53,9 +48,9 @@ class TerminalPainter extends CustomPainter {
           textDirection: TextDirection.ltr,
         );
 
-        tp.layout();
+        painter.layout();
 
-        tp.paint(
+        painter.paint(
           canvas,
           Offset(
             c * colWidth,
@@ -70,25 +65,18 @@ class TerminalPainter extends CustomPainter {
     switch (ansi) {
       case 30:
         return Colors.black;
-
       case 31:
         return Colors.red;
-
       case 32:
         return Colors.green;
-
       case 33:
         return Colors.yellow;
-
       case 34:
         return Colors.blue;
-
       case 35:
         return Colors.purple;
-
       case 36:
         return Colors.cyan;
-
       case 37:
       default:
         return Colors.white;
@@ -99,37 +87,27 @@ class TerminalPainter extends CustomPainter {
     switch (ansi) {
       case 40:
         return Colors.black;
-
       case 41:
         return Colors.red;
-
       case 42:
         return Colors.green;
-
       case 43:
         return Colors.yellow;
-
       case 44:
         return Colors.blue;
-
       case 45:
         return Colors.purple;
-
       case 46:
         return Colors.cyan;
-
       case 47:
         return Colors.white;
-
       default:
         return Colors.transparent;
     }
   }
 
   @override
-  bool shouldRepaint(
-    covariant TerminalPainter oldDelegate,
-  ) {
+  bool shouldRepaint(covariant TerminalPainter oldDelegate) {
     return true;
   }
 }
