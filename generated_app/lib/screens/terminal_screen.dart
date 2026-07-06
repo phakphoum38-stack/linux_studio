@@ -14,7 +14,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   final List<String> output = [];
 
-  final PtyBridge bridge = PtyBridge();
+  final PtyBridge bridge = PtyBridge(ScreenBuffer(120, 40));
 
   @override
   void initState() {
