@@ -7,12 +7,11 @@ class CursorPosition {
     this.col = 0,
   });
 
+  CursorPosition copy() =>
+      CursorPosition(row: row, col: col);
+
   void set(int r, int c) {
     row = r;
     col = c;
-  }
-
-  CursorPosition copy() {
-    return CursorPosition(row: row, col: col);
   }
 }
