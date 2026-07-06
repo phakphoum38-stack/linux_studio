@@ -1,12 +1,17 @@
+import 'dart:async';
+
+typedef TextCallback = void Function(String text);
+typedef CommandCallback = void Function(String command, List<int> args);
+
 class AnsiStreamParser {
   final StringBuffer _buffer = StringBuffer();
 
-  Function(String text)? onText;
-  Function(String command, List<int> args)? onCommand;
+  TextCallback? onText;
+  CommandCallback? onCommand;
 
-  /// Feed incoming stream data
   void feed(String chunk) {
     _buffer.write(chunk);
+
     final data = _buffer.toString();
     _buffer.clear();
 
@@ -19,9 +24,11 @@ class AnsiStreamParser {
     int lastIndex = 0;
 
     for (final match in regex.allMatches(data)) {
-      // TEXT before escape sequence
+      // TEXT ก่อน ANSI escape
       if (match.start > lastIndex) {
-        onText?.call(data.substring(lastIndex, match.start));
+        onText?.call(
+          data.substring(lastIndex, match.start),
+        );
       }
 
       final params = match.group(1) ?? '';
@@ -29,24 +36,23 @@ class AnsiStreamParser {
 
       final args = params.isEmpty
           ? <int>[]
-          : params
-              .split(';')
-              .map((e) => int.tryParse(e) ?? 0)
-              .toList();
+          : params.split(';').map((e) {
+              return int.tryParse(e) ?? 0;
+            }).toList();
 
       final command = _mapCommand(code);
+
       onCommand?.call(command, args);
 
       lastIndex = match.end;
     }
 
-    // remaining text after last escape
+    // TEXT ที่เหลือท้าย string
     if (lastIndex < data.length) {
       onText?.call(data.substring(lastIndex));
     }
   }
 
-  /// Map ANSI codes → terminal actions
   String _mapCommand(String code) {
     switch (code) {
       case 'A':
@@ -61,7 +67,7 @@ class AnsiStreamParser {
       case 'f':
         return 'CUP'; // cursor position
       case 'J':
-        return 'ED'; // erase display
+        return 'ED'; // erase screen
       case 'K':
         return 'EL'; // erase line
       default:
