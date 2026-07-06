@@ -1,0 +1,33 @@
+name: generated_app
+
+description: Generated Linux Studio Modules
+
+publish_to: "none"
+
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Import from parent project
+  provider: ^6.1.5
+  xterm: ^4.0.0
+  file_picker: ^10.3.2
+  path_provider: ^2.1.5
+  archive: ^4.0.7
+  shared_preferences: ^2.5.3
+  dartssh2: ^2.13.0
+  flutter_riverpod: ^2.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
