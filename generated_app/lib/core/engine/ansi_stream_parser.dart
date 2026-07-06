@@ -1,4 +1,23 @@
- escape
+ class AnsiStreamParser {
+  final StringBuffer _buffer = StringBuffer();
+
+  void Function(String text)? onText;
+  void Function(String command, List<int> args)? onCommand;
+
+  void feed(String chunk) {
+    _buffer.write(chunk);
+    final data = _buffer.toString();
+    _buffer.clear();
+
+    _parse(data);
+  }
+
+  void _parse(String data) {
+    final regex = RegExp(r'\x1B\[([0-9;]*)([A-Za-z])');
+
+    int lastIndex = 0;
+
+    for (final match in regex.allMatches(data)) {
       if (match.start > lastIndex) {
         onText?.call(data.substring(lastIndex, match.start));
       }
@@ -17,7 +36,7 @@
       lastIndex = match.end;
     }
 
-    // text `8    if (lastIndex < data.length) {
+    if (lastIndex < data.length) {
       onText?.call(data.substring(lastIndex));
     }
   }
@@ -25,40 +44,20 @@
   String _mapCommand(String code) {
     switch (code) {
       case 'A':
-        return 'CUU'; // up
+        return 'CUU';
       case 'B':
-        return 'CUD'; // down
+        return 'CUD';
       case 'C':
-        return 'CUF'; // forward
+        return 'CUF';
       case 'D':
-        return 'CUB'; // back
+        return 'CUB';
       case 'H':
       case 'f':
-        return 'CUP'; // position
+        return 'CUP';
       case 'J':
-        return 'ED'; // clear screen
+        return 'ED';
       default:
         return 'UNKNOWN';
     }
   }
-}class AnsiStreamParser {
-  final StringBuffer _buffer = StringBuffer();
-
-  Function(String text)? onText;
-  Function(String command, List<int> args)? onCommand;
-
-  void feed(String chunk) {
-    _buffer.write(chunk);
-    final data = _buffer.toString();
-    _buffer.clear();
-
-    _parse(data);
-  }
-
-  void _parse(String data) {
-    final regex = RegExp(r'\x1B\[([0-9;]*)([A-Za-z])');
-
-    int lastIndex = 0;
-
-    for (final match in regex.allMatches(data)) {
-``8-`8      // TEXT `8
+}
