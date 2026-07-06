@@ -14,7 +14,7 @@ class TerminalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final textStyle = const TextStyle(
+    const textStyle = TextStyle(
       color: Color(0xFF00FF00),
       fontSize: 14,
       fontFamily: 'monospace',
@@ -24,19 +24,22 @@ class TerminalPainter extends CustomPainter {
       for (int c = 0; c < buffer.width; c++) {
         final cell = buffer.buffer[r][c];
 
-       optimize
-  }
-}  final tp = TextPainter(
-          text: TextSpan(text: cell.char, style: textStyle),
+        final tp = TextPainter(
+          text: TextSpan(
+            text: cell.char,
+            style: textStyle,
+          ),
           textDirection: TextDirection.ltr,
         );
 
         tp.layout();
-        tp.paint(canvas, Offset(c * 10.0, r * 16.0));
+        tp.paint(
+          canvas,
+          Offset(c * 10.0, r * 16.0),
+        );
       }
     }
 
-    // Cursor render
     final cursorPaint = Paint()
       ..color = const Color(0xFF00FF00)
       ..style = PaintingStyle.fill;
@@ -53,6 +56,7 @@ class TerminalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant TerminalPainter oldDelegate) {    return true;
+  bool shouldRepaint(covariant TerminalPainter oldDelegate) {
+    return true;
   }
 }
