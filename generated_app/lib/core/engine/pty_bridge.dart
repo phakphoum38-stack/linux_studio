@@ -1,125 +1,65 @@
 import 'dart:async';
-
 import 'screen_buffer.dart';
 
-typedef OutputCallback = void Function(String data);
-
+/// Release 1.0 PTY Bridge (Stub + Safe IO Layer)
+///
+/// หน้าที่:
+/// - รับ input จาก UI
+/// - ส่ง output กลับ UI
+/// - เชื่อม Terminal Engine (ScreenBuffer)
 class PtyBridge {
-  PtyBridge({
-    ScreenBuffer? screen,
-  }) : screen = screen ??
-            ScreenBuffer(
-              rows: 24,
-              cols: 80,
-            );
+  final ScreenBuffer buffer;
 
-  final ScreenBuffer screen;
+  PtyBridge(this.buffer);
 
-  OutputCallback? onOutput;
+  /// Output stream callback (UI listens here)
+  Function(String data)? onOutput;
 
-  bool running = false;
+  bool connected = false;
 
-  final StreamController<String> _stream =
+  final StreamController<String> _inputController =
       StreamController<String>.broadcast();
 
-  Stream<String> get output => _stream.stream;
+  /// Start session (mock PTY)
+  void start(String host, int port) {
+    connected = true;
 
-  //--------------------------------------------------------
-  // Start
-  //--------------------------------------------------------
-
-  Future<void> start([
-    String? executable,
-    List<String>? arguments,
-  ]) async {
-    running = true;
-
-    _emit(
-      'PTY started'
-      '${executable == null ? "" : " : $executable"}',
-    );
+    // simulate welcome message
+    _emit("Connected to $host:$port\n");
+    _emit("Release 1.0 PTY Ready\n");
   }
 
-  //--------------------------------------------------------
-  // Write
-  //--------------------------------------------------------
-
+  /// Write command from UI → terminal
   void write(String data) {
-    if (!running) return;
+    if (!connected) return;
 
-    screen.write(data);
+    _emit("\$ $data\n");
 
-    _emit(data);
+    // basic echo simulation
+    _inputController.add(data);
   }
 
-  //--------------------------------------------------------
-  // Compatibility
-  //--------------------------------------------------------
-
-  void send(String data) {
-    write(data);
-  }
-
-  void input(String data) {
-    write(data);
-  }
-
-  //--------------------------------------------------------
-  // ANSI helpers
-  //--------------------------------------------------------
-
-  void setForeground(int color) {
-    screen.currentForeground = color;
-  }
-
-  void setBackground(int color) {
-    screen.currentBackground = color;
-  }
-
-  void setColor(
-    int fg,
-    int bg,
-    bool bold,
-    bool underline,
-  ) {
-    screen.currentForeground = fg;
-    screen.currentBackground = bg;
-
-    screen.bold = bold;
-    screen.underline = underline;
-  }
-
-  //--------------------------------------------------------
-  // Stop
-  //--------------------------------------------------------
-
-  Future<void> kill() async {
-    if (!running) return;
-
-    running = false;
-
-    _emit('PTY stopped');
-  }
-
-  Future<void> disconnect() async {
-    await kill();
-  }
-
-  //--------------------------------------------------------
-  // Internal
-  //--------------------------------------------------------
-
-  void _emit(String text) {
-    onOutput?.call(text);
-
-    if (!_stream.isClosed) {
-      _stream.add(text);
+  /// Internal output sender
+  void _emit(String data) {
+    if (onOutput != null) {
+      onOutput!(data);
     }
   }
 
-  void dispose() {
-    kill();
+  /// Apply ANSI color (stub for now)
+  void setColor(int fg, int bg) {
+    // Release 1.0: no-op (reserved for ANSI parser)
+  }
 
-    _stream.close();
+  /// Clear terminal
+  void clear() {
+    buffer.clear();
+    _emit("\x1B[2J");
+  }
+
+  /// Kill session
+  void kill() {
+    connected = false;
+    _inputController.close();
   }
 }
