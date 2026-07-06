@@ -1,148 +1,71 @@
- import 'dart:core';
-
-typedef TextCallback = void Function(String text);
-typedef CommandCallback = void Function(
-  String command,
-  List<int> args,
-);
-
 class AnsiStreamParser {
   final StringBuffer _buffer = StringBuffer();
 
-  TextCallback? onText;
-  CommandCallback? onCommand;
+  Function(String text)? onText;
+  Function(String command, List<int> args)? onCommand;
 
+  /// Feed incoming stream data
   void feed(String chunk) {
-    if (chunk.isEmpty) return;
-
     _buffer.write(chunk);
-
     final data = _buffer.toString();
-
     _buffer.clear();
 
     _parse(data);
   }
 
   void _parse(String data) {
-    final regex =
-        RegExp(r'\x1B\[([0-9;?]*)([@-~])');
+    final regex = RegExp(r'\x1B\[([0-9;]*)([A-Za-z])');
 
     int lastIndex = 0;
 
     for (final match in regex.allMatches(data)) {
+      // TEXT before escape sequence
       if (match.start > lastIndex) {
-        onText?.call(
-          data.substring(lastIndex, match.start),
-        );
+        onText?.call(data.substring(lastIndex, match.start));
       }
 
-      final params =
-          match.group(1) ?? '';
-
-      final code =
-          match.group(2) ?? '';
+      final params = match.group(1) ?? '';
+      final code = match.group(2) ?? '';
 
       final args = params.isEmpty
           ? <int>[]
           : params
-              .replaceAll('?', '')
               .split(';')
-              .where((e) => e.isNotEmpty)
-              .map(
-                (e) => int.tryParse(e) ?? 0,
-              )
+              .map((e) => int.tryParse(e) ?? 0)
               .toList();
 
-      onCommand?.call(
-        _mapCommand(code),
-        args,
-      );
+      final command = _mapCommand(code);
+      onCommand?.call(command, args);
 
       lastIndex = match.end;
     }
 
+    // remaining text after last escape
     if (lastIndex < data.length) {
-      onText?.call(
-        data.substring(lastIndex),
-      );
+      onText?.call(data.substring(lastIndex));
     }
   }
 
+  /// Map ANSI codes → terminal actions
   String _mapCommand(String code) {
     switch (code) {
       case 'A':
-        return 'CUU';
-
+        return 'CUU'; // cursor up
       case 'B':
-        return 'CUD';
-
+        return 'CUD'; // cursor down
       case 'C':
-        return 'CUF';
-
+        return 'CUF'; // cursor forward
       case 'D':
-        return 'CUB';
-
-      case 'E':
-        return 'CNL';
-
-      case 'F':
-        return 'CPL';
-
-      case 'G':
-        return 'CHA';
-
+        return 'CUB'; // cursor back
       case 'H':
       case 'f':
-        return 'CUP';
-
+        return 'CUP'; // cursor position
       case 'J':
-        return 'ED';
-
+        return 'ED'; // erase display
       case 'K':
-        return 'EL';
-
-      case 'L':
-        return 'IL';
-
-      case 'M':
-        return 'DL';
-
-      case 'P':
-        return 'DCH';
-
-      case '@':
-        return 'ICH';
-
-      case 'X':
-        return 'ECH';
-
-      case 'S':
-        return 'SU';
-
-      case 'T':
-        return 'SD';
-
-      case 'm':
-        return 'SGR';
-
-      case 's':
-        return 'SCP';
-
-      case 'u':
-        return 'RCP';
-
-      case 'n':
-        return 'DSR';
-
-      case 'h':
-        return 'SM';
-
-      case 'l':
-        return 'RM';
-
+        return 'EL'; // erase line
       default:
-        return code;
+        return 'UNKNOWN';
     }
   }
 }
