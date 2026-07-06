@@ -1,30 +1,41 @@
 import 'package:flutter/material.dart';
-
 import '../engine/screen_buffer.dart';
-import 'terminal_painter.dart';
 
-/// GPU Terminal Painter
-///
-/// Release 1.0
-///
-/// ตอนนี้ใช้ TerminalPainter เดิมไปก่อน
-/// เพื่อให้ compile ผ่าน
-/// Release 1.1 จะเปลี่ยนเป็น GPU Renderer จริง
-class GpuTerminalPainter extends TerminalPainter {
-  GpuTerminalPainter(
-    ScreenBuffer screen, {
-    double fontSize = 14,
-    String fontFamily = 'monospace',
-  }) : super(
-          screen,
-          fontSize: fontSize,
-          fontFamily: fontFamily,
-        );
+class GpuTerminalPainter extends CustomPainter {
+  final ScreenBuffer buffer;
+
+  GpuTerminalPainter(this.buffer);
 
   @override
-  bool shouldRepaint(
-    covariant GpuTerminalPainter oldDelegate,
-  ) {
-    return true;
+  void paint(Canvas canvas, Size size) {
+    final textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+    );
+
+    final cellW = size.width / buffer.cols;
+    final cellH = size.height / buffer.rows;
+
+    for (int y = 0; y < buffer.rows; y++) {
+      for (int x = 0; x < buffer.cols; x++) {
+        final c = buffer.buffer[y][x];
+
+        textPainter.text = TextSpan(
+          text: c.char,
+          style: const TextStyle(
+            color: Colors.white,
+            fontFamily: 'monospace',
+          ),
+        );
+
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(x * cellW, y * cellH),
+        );
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
