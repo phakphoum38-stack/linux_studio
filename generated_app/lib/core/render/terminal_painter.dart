@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../engine/screen_buffer.dart';
 
 class TerminalPainter extends CustomPainter {
