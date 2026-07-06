@@ -14,49 +14,63 @@ class TerminalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const textStyle = TextStyle(
+    // Reuse a single TextPainter to reduce allocations
+    final textStyle = const TextStyle(
       color: Color(0xFF00FF00),
       fontSize: 14,
       fontFamily: 'monospace',
     );
 
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+
+    // Measure a representative glyph once to determine cell size
+    tp.text = const TextSpan(text: 'W', style: TextStyle(fontSize: 14, fontFamily: 'monospace'));
+    tp.layout();
+    final double cellWidth = tp.width;
+    final double cellHeight = tp.height;
+
+    // Clip to prevent painting outside bounds
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+
     for (int r = 0; r < buffer.height; r++) {
+      final double y = r * cellHeight;
       for (int c = 0; c < buffer.width; c++) {
         final cell = buffer.buffer[r][c];
+        final ch = cell.char;
 
-        final tp = TextPainter(
-          text: TextSpan(
-            text: cell.char,
-            style: textStyle,
-          ),
-          textDirection: TextDirection.ltr,
-        );
+        // Skip empty spaces to reduce painting work
+        if (ch.isEmpty || ch == ' ') continue;
 
+        tp.text = TextSpan(text: ch, style: textStyle);
         tp.layout();
-        tp.paint(
-          canvas,
-          Offset(c * 10.0, r * 16.0),
-        );
+        tp.paint(canvas, Offset(c * cellWidth, y));
       }
     }
+
+    canvas.restore();
 
     final cursorPaint = Paint()
       ..color = const Color(0xFF00FF00)
       ..style = PaintingStyle.fill;
 
-    canvas.drawRect(
-      Rect.fromLTWH(
-        cursorCol * 10.0,
-        cursorRow * 16.0,
-        8,
-        14,
-      ),
-      cursorPaint,
+    final cursorRect = Rect.fromLTWH(
+      cursorCol * cellWidth,
+      cursorRow * cellHeight,
+      cellWidth * 0.8,
+      cellHeight * 0.9,
     );
+
+    canvas.drawRect(cursorRect, cursorPaint);
   }
 
   @override
   bool shouldRepaint(covariant TerminalPainter oldDelegate) {
-    return true;
+    // Repaint when the buffer instance changed (content likely changed),
+    // when buffer dimensions change, or when cursor position changes.
+    if (!identical(buffer, oldDelegate.buffer)) return true;
+    if (buffer.width != oldDelegate.buffer.width || buffer.height != oldDelegate.buffer.height) return true;
+    if (cursorRow != oldDelegate.cursorRow || cursorCol != oldDelegate.cursorCol) return true;
+    return false;
   }
 }
