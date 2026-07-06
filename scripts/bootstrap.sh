@@ -33,7 +33,16 @@ else
   git -C native/ish_core pull
 fi
 
-echo "📦 Installing Flutter packages..."
+# สร้างหรืออัปเดต generated_app pubspec.yaml
+if [ ! -f "generated_app/pubspec.yaml" ]; then
+  echo "📝 Creating generated_app/pubspec.yaml..."
+  ./scripts/generate.sh
+fi
+
+echo "📦 Installing Flutter packages (Root)..."
 flutter pub get
+
+echo "📦 Installing Flutter packages (Generated App)..."
+flutter pub get -C generated_app || true
 
 echo "✅ Bootstrap completed."
