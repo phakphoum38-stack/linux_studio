@@ -1,11 +1,17 @@
+import '../engine/screen_buffer.dart';
+
 class TerminalControllerV5 {
-  final DirtyTracker dirty = DirtyTracker();
+  ScreenBuffer buffer;
 
-  void mark(int r, int c) {
-    dirty.mark(r, c);
+  TerminalControllerV5(this.buffer);
+
+  void putString(int row, int col, String text) {
+    for (int i = 0; i < text.length; i++) {
+      final c = text[i];
+      if (col + i >= buffer.width) break;
+      buffer.setChar(row, col + i, c);
+    }
   }
 
-  void scrollEvent() {
-    dirty.clear(); // full repaint on scroll
-  }
+  void clearScreen() => buffer.clear();
 }
