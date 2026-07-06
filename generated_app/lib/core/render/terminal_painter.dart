@@ -12,22 +12,23 @@ class TerminalPainter extends CustomPainter {
     required this.cursorCol,
   });
 
+  // Static glyph cache shared across painter instances to avoid repeated layouts
+  static final Map<String, TextPainter> _glyphCache = {};
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Reuse a single TextPainter to reduce allocations
-    final textStyle = const TextStyle(
+    // Reuse a single TextPainter for measuring
+    const textStyle = TextStyle(
       color: Color(0xFF00FF00),
       fontSize: 14,
       fontFamily: 'monospace',
     );
 
-    final tp = TextPainter(textDirection: TextDirection.ltr);
-
-    // Measure a representative glyph once to determine cell size
-    tp.text = const TextSpan(text: 'W', style: TextStyle(fontSize: 14, fontFamily: 'monospace'));
-    tp.layout();
-    final double cellWidth = tp.width;
-    final double cellHeight = tp.height;
+    final measureTp = TextPainter(textDirection: TextDirection.ltr);
+    measureTp.text = const TextSpan(text: 'W', style: TextStyle(fontSize: 14, fontFamily: 'monospace'));
+    measureTp.layout();
+    final double cellWidth = measureTp.width;
+    final double cellHeight = measureTp.height;
 
     // Clip to prevent painting outside bounds
     canvas.save();
@@ -39,12 +40,21 @@ class TerminalPainter extends CustomPainter {
         final cell = buffer.buffer[r][c];
         final ch = cell.char;
 
-        // Skip empty spaces to reduce painting work
+        // Skip empty spaces
         if (ch.isEmpty || ch == ' ') continue;
 
-        tp.text = TextSpan(text: ch, style: textStyle);
-        tp.layout();
-        tp.paint(canvas, Offset(c * cellWidth, y));
+        // Use glyph cache keyed by the character and style (simplified: only char key)
+        var glyphTp = _glyphCache[ch];
+        if (glyphTp == null) {
+          glyphTp = TextPainter(
+            text: TextSpan(text: ch, style: textStyle),
+            textDirection: TextDirection.ltr,
+          );
+          glyphTp.layout();
+          _glyphCache[ch] = glyphTp;
+        }
+
+        glyphTp.paint(canvas, Offset(c * cellWidth, y));
       }
     }
 
@@ -66,8 +76,6 @@ class TerminalPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant TerminalPainter oldDelegate) {
-    // Repaint when the buffer instance changed (content likely changed),
-    // when buffer dimensions change, or when cursor position changes.
     if (!identical(buffer, oldDelegate.buffer)) return true;
     if (buffer.width != oldDelegate.buffer.width || buffer.height != oldDelegate.buffer.height) return true;
     if (cursorRow != oldDelegate.cursorRow || cursorCol != oldDelegate.cursorCol) return true;
