@@ -13,6 +13,7 @@ MODULES=(
   terminal
   file_manager
   package_manager
+  ish
   desktop_vnc
 )
 
