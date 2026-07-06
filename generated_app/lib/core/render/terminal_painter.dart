@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/screen_buffer.dart';
+import '../engine/terminal_cell.dart';
 
 class TerminalPainter extends CustomPainter {
   final ScreenBuffer screen;
@@ -32,14 +33,15 @@ class TerminalPainter extends CustomPainter {
       for (int c = 0; c < screen.cols; c++) {
         final cell = screen.buffer[r][c];
 
+        // skip empty cell
         if (cell.char == ' ') continue;
 
         final painter = TextPainter(
           text: TextSpan(
             text: cell.char,
             style: textStyle.copyWith(
-              color: _ansiColor(cell.foreground),
-              backgroundColor: _ansiBg(cell.background),
+              color: _ansiColor(cell.fg),
+              backgroundColor: _ansiBg(cell.bg),
             ),
           ),
           textDirection: TextDirection.ltr,
