@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
-import 'core/app.dart';
+import 'screens/terminal_screen.dart';
 
 void main() {
-  runApp(const LinuxStudioApp());
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: TerminalScreen(),
+      ),
+    );
+  }
 }
