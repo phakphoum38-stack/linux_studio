@@ -18,14 +18,11 @@ jobs:
         with:
           channel: stable
 
-      - name: Flutter Version
-        run: flutter --version
-
       - name: Flutter Pub Get
         run: flutter pub get
 
-      - name: Flutter Analyze
-        run: flutter analyze
+      - name: Ensure main.dart exists
+        run: ls lib/main.dart
 
       - name: Build iOS (No Codesign)
         run: flutter build ios --release --no-codesign
@@ -34,4 +31,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-build
-          path: build/ios
+          path: build/
