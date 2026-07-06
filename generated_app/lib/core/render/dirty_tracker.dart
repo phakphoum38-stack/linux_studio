@@ -1,15 +1,15 @@
-import 'dirty_region.dart';
-
 class DirtyTracker {
-  final List<DirtyRegion> _regions = [];
+  final Set<String> dirtyCells = {};
 
-  void mark(int x, int y, int w, int h) {
-    _regions.add(DirtyRegion(x, y, w, h));
+  void mark(int r, int c) {
+    dirtyCells.add("$r:$c");
   }
 
   void clear() {
-    _regions.clear();
+    dirtyCells.clear();
   }
 
-  List<DirtyRegion> get regions => _regions;
+  bool isDirty(int r, int c) {
+    return dirtyCells.contains("$r:$c");
+  }
 }
