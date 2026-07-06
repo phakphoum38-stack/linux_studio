@@ -10,7 +10,7 @@ class TerminalCell {
   bool inverse;
 
   TerminalCell({
-    required this.char,
+    this.char = ' ',
     this.fg = 37,
     this.bg = 40,
     this.bold = false,
