@@ -1,40 +1,12 @@
-import 'terminal_cell.dart';
+import '../engine/terminal_cell.dart';
 
 class DiffRenderer {
-  List<List<TerminalCell>>? _prev;
-
-  List<Map<String, dynamic>> compute(
-    List<List<TerminalCell>> current,
-  ) {
-    final changes = <Map<String, dynamic>>[];
-
-    if (_prev == null) {
-      _prev = _clone(current);
-      return [
-        {
-          "full": true,
-          "buffer": current,
-        }
-      ];
-    }
-
-    for (int r = 0; r < current.length; r++) {
-      for (int c = 0; c < current[r].length; c++) {
-        final cur = current[r][c];
-        final prev = _prev![r][c];
-
-        if (cur.char != prev.char ||
-            cur.fg != prev.fg ||
-            cur.bg != prev.bg) {
-          changes.add({
-            "row": r,
-            "col": c,
-            "cell": cur,
-          });
-        }
-      }
-    }
-
+  bool isDifferent(TerminalCell a, TerminalCell b) {
+    return a.char != b.char ||
+        a.fg != b.fg ||
+        a.bg != b.bg;
+  }
+}
     _prev = _clone(current);
 
     return changes;
