@@ -1,106 +1,37 @@
-import 'dart:async';
-
-typedef SshOutputCallback = void Function(String data);
+import 'package:dartssh2/dartssh2.dart';
 
 class SshBridge {
+  SSHClient? _client;
+  SSHSession? _session;
+
   bool connected = false;
 
-  String? host;
-  int port = 22;
-  String? username;
-
-  SshOutputCallback? onOutput;
-
-  final StreamController<String> _stream =
-      StreamController<String>.broadcast();
-
-  Stream<String> get output => _stream.stream;
-
-  //----------------------------------------------------------
-  // Connect
-  //----------------------------------------------------------
-
-  Future<bool> connect({
+  Future<void> connect({
     required String host,
-    int port = 22,
     required String username,
-    String? password,
+    required String password,
+    int port = 22,
   }) async {
-    this.host = host;
-    this.port = port;
-    this.username = username;
+    final socket = await SSHSocket.connect(host, port);
+
+    _client = SSHClient(
+      socket,
+      username: username,
+      onPasswordRequest: () => password,
+    );
+
+    _session = await _client!.shell();
 
     connected = true;
-
-    _emit(
-      'Connected to $host:$port as $username',
-    );
-
-    return true;
   }
-
-  //----------------------------------------------------------
-  // Compatibility API
-  //----------------------------------------------------------
-
-  Future<void> open({
-    required String host,
-    required String username,
-    String? password,
-    int port = 22,
-  }) async {
-    await connect(
-      host: host,
-      username: username,
-      password: password,
-      port: port,
-    );
-  }
-
-  //----------------------------------------------------------
-  // Write
-  //----------------------------------------------------------
 
   void write(String data) {
-    if (!connected) return;
-
-    _emit(data);
+    _session?.write(data);
   }
 
-  void send(String data) {
-    write(data);
-  }
-
-  //----------------------------------------------------------
-  // Disconnect
-  //----------------------------------------------------------
-
-  Future<void> disconnect() async {
-    if (!connected) return;
-
+  void disconnect() {
+    _session?.close();
+    _client?.close();
     connected = false;
-
-    _emit('Disconnected');
-  }
-
-  void close() {
-    disconnect();
-  }
-
-  //----------------------------------------------------------
-  // Internal
-  //----------------------------------------------------------
-
-  void _emit(String text) {
-    onOutput?.call(text);
-
-    if (!_stream.isClosed) {
-      _stream.add(text);
-    }
-  }
-
-  void dispose() {
-    disconnect();
-    _stream.close();
   }
 }
