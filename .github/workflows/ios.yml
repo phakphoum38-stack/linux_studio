@@ -2,10 +2,7 @@ name: Linux Studio iOS Build
 
 on:
   push:
-    branches:
-      - main
-      - master
-  pull_request:
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
@@ -24,25 +21,17 @@ jobs:
       - name: Flutter Version
         run: flutter --version
 
-      - name: Bootstrap Project
-        run: |
-          chmod +x scripts/bootstrap.sh
-          ./scripts/bootstrap.sh
-
-      - name: Generate Modules
-        run: |
-          chmod +x scripts/generate.sh
-          ./scripts/generate.sh
-
       - name: Flutter Pub Get
         run: flutter pub get
+
+      - name: Flutter Analyze
+        run: flutter analyze
 
       - name: Build iOS (No Codesign)
         run: flutter build ios --release --no-codesign
 
-      - name: Upload iOS Build Logs
+      - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build-output
-          path: build/
-          if-no-files-found: warn
+          name: ios-build
+          path: build/ios
