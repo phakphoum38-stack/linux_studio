@@ -1,12 +1,13 @@
-import '../engine/screen_buffer.dart';
+import 'dirty_tracker.dart';
 
 class RenderPipeline {
-  final ScreenBuffer buffer;
+  final DirtyTracker tracker = DirtyTracker();
 
-  RenderPipeline(this.buffer);
+  void invalidateAll() {
+    tracker.clear();
+  }
 
-  void render() {
-    // Phase 14: placeholder safe pipeline
-    // (no DirtyRegion / DirtyTracker yet)
+  void invalidateCell(int r, int c) {
+    tracker.mark(r, c);
   }
 }
