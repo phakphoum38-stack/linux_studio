@@ -2,74 +2,56 @@ import 'cursor_position.dart';
 import 'terminal_cell.dart';
 
 class ScreenBuffer {
-  final int height;
-  final int width;
+  final int rows;
+  final int cols;
 
   late List<List<TerminalCell>> buffer;
 
   final CursorPosition cursor = CursorPosition();
 
-  int currentForeground = 37;
-  int currentBackground = 40;
-
-  bool bold = false;
-  bool italic = false;
-  bool underline = false;
-  bool inverse = false;
+  int currentFg = 37;
+  int currentBg = 40;
 
   ScreenBuffer({
-    this.height = 24,
-    this.width = 80,
+    this.rows = 24,
+    this.cols = 80,
   }) {
     _init();
   }
 
   void _init() {
     buffer = List.generate(
-      height,
+      rows,
       (_) => List.generate(
-        width,
-        (_) => TerminalCell(char: ' '),
+        cols,
+        (_) => TerminalCell(),
       ),
     );
   }
 
-  // alias compatibility (IMPORTANT)
-  int get rows => height;
-  int get cols => width;
-
-  bool _inBounds(int r, int c) =>
-      r >= 0 && r < height && c >= 0 && c < width;
+  bool inBounds(int r, int c) {
+    return r >= 0 && r < rows && c >= 0 && c < cols;
+  }
 
   TerminalCell cell(int r, int c) => buffer[r][c];
 
-  // ✔ FIX: fg/bg access required by diff_renderer
-  int getFg(int r, int c) => buffer[r][c].fg;
-  int getBg(int r, int c) => buffer[r][c].bg;
+  void writeChar(String ch) {
+    if (!inBounds(cursor.row, cursor.col)) return;
 
-  // ✔ FIX: setters required
-  void setColor(int r, int c, int fg, int bg) {
-    if (!_inBounds(r, c)) return;
-    buffer[r][c].fg = fg;
-    buffer[r][c].bg = bg;
-  }
+    buffer[cursor.row][cursor.col].char = ch;
+    buffer[cursor.row][cursor.col].fg = currentFg;
+    buffer[cursor.row][cursor.col].bg = currentBg;
 
-  void write(int r, int c, String ch) {
-    if (!_inBounds(r, c)) return;
-    buffer[r][c].char = ch;
-  }
-
-  void clear() {
-    for (var r = 0; r < height; r++) {
-      for (var c = 0; c < width; c++) {
-        buffer[r][c] = TerminalCell(char: ' ');
-      }
+    cursor.col++;
+    if (cursor.col >= cols) {
+      cursor.col = 0;
+      cursor.row++;
     }
   }
 
-  // cursor helpers (minimal needed)
-  void moveCursor(int r, int c) {
-    cursor.row = r.clamp(0, height - 1);
-    cursor.col = c.clamp(0, width - 1);
+  void writeString(String text) {
+    for (final r in text.runes) {
+      writeChar(String.fromCharCode(r));
+    }
   }
 }
