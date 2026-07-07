@@ -1,225 +1,244 @@
 import 'screen_buffer.dart';
-import 'terminal_event.dart';
+import 'ansi_csi_parser.dart';
+
 
 
 class VT100StateMachine {
 
 
-  int row = 0;
-  int col = 0;
+  final ScreenBuffer buffer;
 
 
-  int foreground = 37;
-  int background = 40;
-
-
-  bool bold = false;
-  bool underline = false;
-  bool inverse = false;
+  bool cursorVisible=true;
 
 
 
-  bool cursorVisible = true;
+  VT100StateMachine(
+    this.buffer,
+  );
 
 
 
-  void apply(
-    TerminalEvent event,
-    ScreenBuffer buffer,
-  ) {
 
 
-    switch(event.type) {
+
+  void handle(
+    AnsiEvent event,
+  ){
 
 
-      case TerminalEventType.text:
+    if(event is TextEvent){
 
-        final e = event as TextEvent;
+      buffer.writeText(
+        event.text,
+      );
 
-        buffer.moveCursor(
-          row,
-          col,
+
+    }
+
+
+
+    if(event is CsiEvent){
+
+      execute(
+        event.command,
+        event.args,
+      );
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void execute(
+    String cmd,
+    List<int> args,
+  ){
+
+
+    switch(cmd){
+
+
+
+      // Cursor Up
+      case 'A':
+
+        buffer.cursor.row =
+            (buffer.cursor.row -
+            _value(args))
+            .clamp(
+              0,
+              buffer.rows-1,
+            );
+
+        break;
+
+
+
+
+
+      // Cursor Down
+      case 'B':
+
+        buffer.cursor.row =
+            (buffer.cursor.row +
+            _value(args))
+            .clamp(
+              0,
+              buffer.rows-1,
+            );
+
+        break;
+
+
+
+
+
+      // Cursor Forward
+      case 'C':
+
+        buffer.cursor.col =
+            (buffer.cursor.col +
+            _value(args))
+            .clamp(
+              0,
+              buffer.cols-1,
+            );
+
+        break;
+
+
+
+
+
+      // Cursor Back
+      case 'D':
+
+        buffer.cursor.col =
+            (buffer.cursor.col -
+            _value(args))
+            .clamp(
+              0,
+              buffer.cols-1,
+            );
+
+        break;
+
+
+
+
+
+
+
+      // Cursor Position
+      case 'H':
+
+      case 'f':
+
+        buffer.cursor.row =
+            ((args.isNotEmpty
+                ? args[0]
+                : 1)-1)
+            .clamp(
+              0,
+              buffer.rows-1,
+            );
+
+
+        buffer.cursor.col =
+            ((args.length>1
+                ? args[1]
+                : 1)-1)
+            .clamp(
+              0,
+              buffer.cols-1,
+            );
+
+
+        break;
+
+
+
+
+
+
+
+      // Clear screen
+      case 'J':
+
+        if(_value(args)==2){
+
+          buffer.clear();
+
+        }
+
+        break;
+
+
+
+
+
+
+
+      // Clear line
+      case 'K':
+
+        buffer.clearLine(
+          buffer.cursor.row,
         );
 
-        buffer.setAttributes(
-          foreground,
-          background,
-          bold,
-          underline,
-          inverse,
+        break;
+
+
+
+
+
+
+
+      // SGR Color
+      case 'm':
+
+        _style(
+          args,
         );
 
-        buffer.writeText(
-          e.text,
-        );
+        break;
 
 
-        _syncCursor(buffer);
+
+
+      // Cursor visibility
+      case 'h':
+
+        if(args.contains(25)){
+
+          cursorVisible=true;
+
+        }
 
         break;
 
 
 
 
+      case 'l':
 
-      case TerminalEventType.cursorMove:
+        if(args.contains(25)){
 
+          cursorVisible=false;
 
-        final e =
-            event as CursorMoveEvent;
-
-
-        row += e.row;
-        col += e.col;
-
-
-        _clamp(
-          buffer,
-        );
-
+        }
 
         break;
 
-
-
-
-
-
-      case TerminalEventType.cursorPosition:
-
-
-        final e =
-            event as CursorPositionEvent;
-
-
-        row=e.row;
-        col=e.col;
-
-
-        _clamp(
-          buffer,
-        );
-
-
-        break;
-
-
-
-
-
-
-      case TerminalEventType.setColor:
-
-
-        final e =
-            event as SetColorEvent;
-
-
-        foreground =
-            e.foreground;
-
-
-        background =
-            e.background;
-
-
-        break;
-
-
-
-
-
-
-      case TerminalEventType.eraseDisplay:
-
-
-        final e =
-            event as EraseDisplayEvent;
-
-
-        _eraseDisplay(
-          e.mode,
-          buffer,
-        );
-
-
-        break;
-
-
-
-
-
-
-      case TerminalEventType.eraseLine:
-
-
-        final e =
-            event as EraseLineEvent;
-
-
-        _eraseLine(
-          e.mode,
-          buffer,
-        );
-
-
-        break;
-
-
-
-
-
-
-      case TerminalEventType.scroll:
-
-
-        final e =
-            event as ScrollEvent;
-
-
-        buffer.scrollUp(
-          e.amount,
-        );
-
-
-        break;
-
-
-
-
-
-
-      case TerminalEventType.bell:
-
-        break;
-
-
-
-      case TerminalEventType.setAttribute:
-
-
-        final e =
-            event as AttributeEvent;
-
-
-        bold =
-            e.bold;
-
-        underline =
-            e.underline;
-
-        inverse =
-            e.inverse;
-
-
-        break;
-
-
-
-
-      case TerminalEventType.resize:
-
-        break;
 
     }
 
@@ -232,79 +251,20 @@ class VT100StateMachine {
 
 
 
-
-  void _syncCursor(
-    ScreenBuffer buffer,
+  int _value(
+    List<int> args,
   ){
 
-    row =
-        buffer.cursor.row;
+    if(args.isEmpty ||
+       args[0]==0){
 
-
-    col =
-        buffer.cursor.col;
-
-  }
-
-
-
-
-
-
-
-
-
-  void _clamp(
-    ScreenBuffer buffer,
-  ){
-
-    if(row < 0)
-      row = 0;
-
-
-    if(col < 0)
-      col = 0;
-
-
-
-    if(row >= buffer.rows)
-      row = buffer.rows-1;
-
-
-    if(col >= buffer.cols)
-      col = buffer.cols-1;
-
-  }
-
-
-
-
-
-
-
-
-
-  void _eraseDisplay(
-    int mode,
-    ScreenBuffer buffer,
-  ){
-
-    switch(mode){
-
-
-      case 2:
-
-        buffer.clear();
-
-        break;
-
-
-      default:
-
-        break;
+      return 1;
 
     }
 
+
+    return args[0];
+
   }
 
 
@@ -315,31 +275,71 @@ class VT100StateMachine {
 
 
 
-  void _eraseLine(
-    int mode,
-    ScreenBuffer buffer,
+  void _style(
+    List<int> args,
   ){
 
-    buffer.clearLine(
-      row,
-    );
+
+    if(args.isEmpty){
+
+      buffer.currentForeground=37;
+
+      buffer.currentBackground=40;
+
+      return;
+
+    }
+
+
+
+
+
+    for(final a in args){
+
+
+      if(a>=30 && a<=37){
+
+        buffer.currentForeground=a;
+
+      }
+
+
+      if(a>=40 && a<=47){
+
+        buffer.currentBackground=a;
+
+      }
+
+
+
+      if(a==1){
+
+        buffer.bold=true;
+
+      }
+
+
+
+      if(a==4){
+
+        buffer.underline=true;
+
+      }
+
+
+
+      if(a==7){
+
+        buffer.inverse=true;
+
+      }
+
+
+
+    }
+
 
   }
 
-
-
-  void reset(){
-
-    row=0;
-    col=0;
-
-    foreground=37;
-    background=40;
-
-    bold=false;
-    underline=false;
-    inverse=false;
-
-  }
 
 }
