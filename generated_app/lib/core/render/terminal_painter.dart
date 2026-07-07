@@ -1,28 +1,34 @@
 import 'package:flutter/material.dart';
-
 import '../engine/screen_buffer.dart';
+
 
 
 class TerminalPainter
     extends CustomPainter {
 
 
-  final ScreenBuffer screen;
+  final ScreenBuffer buffer;
 
 
   final double fontSize;
 
-  final String fontFamily;
+
+  final bool cursorVisible;
 
 
 
-  TerminalPainter(
-    this.screen, {
+  TerminalPainter({
+
+    required this.buffer,
+
+    required this.cursorVisible,
 
     this.fontSize = 14,
 
-    this.fontFamily = 'monospace',
   });
+
+
+
 
 
 
@@ -30,26 +36,27 @@ class TerminalPainter
   void paint(
     Canvas canvas,
     Size size,
-  ) {
+  ){
 
 
     canvas.drawRect(
       Offset.zero & size,
-
       Paint()
         ..color = Colors.black,
     );
 
 
 
-    final style = TextStyle(
+    final textStyle =
+        TextStyle(
 
-      fontSize: fontSize,
+          fontFamily:
+              'monospace',
 
-      fontFamily: fontFamily,
+          fontSize:
+              fontSize,
 
-      color: Colors.white,
-    );
+        );
 
 
 
@@ -62,80 +69,126 @@ class TerminalPainter
 
 
 
-    for (int r = 0;
-        r < screen.rows;
-        r++) {
 
 
 
-      for (int c = 0;
-          c < screen.cols;
-          c++) {
+
+    for(
+      int r=0;
+      r<buffer.rows;
+      r++
+    ){
+
+      for(
+        int c=0;
+        c<buffer.cols;
+        c++
+      ){
 
 
 
         final cell =
-            screen.buffer[r][c];
+            buffer.buffer[r][c];
 
 
 
-        final cursor =
-            screen.cursor.row == r &&
-            screen.cursor.col == c;
+        final isCursor =
+
+            cursorVisible &&
+
+            buffer.cursor.row == r &&
+
+            buffer.cursor.col == c;
 
 
 
-        final painter =
-            TextPainter(
 
-          text: TextSpan(
 
-            text: cell.char,
 
-            style: style.copyWith(
+        final style =
+            textStyle.copyWith(
 
               color:
-                  _fg(cell.fg),
+                  isCursor
+
+                  ? Colors.black
+
+                  : _fg(cell.fg),
 
               backgroundColor:
-                  cursor
-                      ? Colors.white
-                      : _bg(cell.bg),
-            ),
-          ),
 
+                  isCursor
 
-          textDirection:
-              TextDirection.ltr,
-        );
+                  ? Colors.white
 
+                  : _bg(cell.bg),
 
-
-        painter.layout();
+            );
 
 
 
-        painter.paint(
+
+
+
+
+        final tp =
+            TextPainter(
+
+              text:
+                  TextSpan(
+
+                    text:
+                        cell.char,
+
+                    style:
+                        style,
+
+                  ),
+
+              textDirection:
+                  TextDirection.ltr,
+
+            );
+
+
+
+        tp.layout();
+
+
+
+        tp.paint(
 
           canvas,
 
           Offset(
+
             c * colWidth,
+
             r * rowHeight,
+
           ),
+
         );
+
       }
+
     }
+
   }
 
 
 
 
-  Color _fg(
-    int code,
-  ) {
 
-    switch(code) {
+
+
+
+  Color _fg(int v){
+
+    switch(v){
+
+      case 30:
+        return Colors.black;
 
       case 31:
         return Colors.red;
@@ -149,22 +202,30 @@ class TerminalPainter
       case 34:
         return Colors.blue;
 
+      case 35:
+        return Colors.purple;
+
       case 36:
         return Colors.cyan;
 
       default:
         return Colors.white;
+
     }
+
   }
 
 
 
 
-  Color _bg(
-    int code,
-  ) {
 
-    switch(code) {
+
+  Color _bg(int v){
+
+    switch(v){
+
+      case 40:
+        return Colors.black;
 
       case 41:
         return Colors.red;
@@ -172,21 +233,32 @@ class TerminalPainter
       case 42:
         return Colors.green;
 
+      case 43:
+        return Colors.yellow;
+
       case 44:
         return Colors.blue;
 
       default:
         return Colors.transparent;
+
     }
+
   }
+
+
+
 
 
 
   @override
   bool shouldRepaint(
-    covariant TerminalPainter oldDelegate,
-  ) {
+      covariant TerminalPainter old
+  ){
 
     return true;
+
   }
+
+
 }
