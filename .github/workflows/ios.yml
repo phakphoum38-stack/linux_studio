@@ -1,62 +1,46 @@
 name: Linux Studio iOS Build
 
 on:
-push:
-branches:
-- main
-- master
-
-workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 jobs:
-build-ios:
-runs-on: macos-latest
+  build-ios:
+    runs-on: macos-latest
 
-defaults:
-  run:
-    working-directory: generated_app
-steps:
-  - name: Checkout Repository
-    uses: actions/checkout@v4
-  - name: Setup Flutter
-    uses: subosito/flutter-action@v2
-    with:
-      channel: stable
-      cache: true
-  - name: Flutter Doctor
-    run: flutter doctor -v
-  - name: Flutter Version
-    run: flutter --version
-  - name: Install Dependencies
-    run: flutter pub get
-  - name: Verify Project Structure
-    run: |
-      pwd
-      ls -la
-      ls -la lib
-      ls -la ios
-  - name: Analyze Project
-    timeout-minutes: 5
-    run: |
-      flutter analyze --no-fatal-infos --no-fatal-warnings || true
-  - name: Run Tests
-    timeout-minutes: 5
-    run: |
-      flutter test || true
-  - name: Enable iOS
-    run: flutter config --enable-ios
-  - name: Build iOS Release (No Codesign)
-    run: |
-      flutter build ios --release --no-codesign
-  - name: Verify Build Output
-    run: |
-      ls -R build/ios
-  - name: Prepare Artifact
-    run: |
-      mkdir -p ../artifacts
-      cp -R build/ios/iphoneos/Runner.app ../artifacts/
-  - name: Upload iOS Artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: Linux-Studio-iOS-Release
-      path: artifacts/
+    defaults:
+      run:
+        working-directory: generated_app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter Doctor
+        run: flutter doctor -v
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+
+      - name: Enable iOS
+        run: flutter config --enable-ios
+
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: generated_app/build/ios/iphoneos/Runner.app
