@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../core/engine/pty_bridge.dart';
+import '../core/engine/screen_buffer.dart';
+import '../core/engine/ssh_bridge.dart';
+import '../ui/terminal_view.dart';
 
 class TerminalScreen extends StatefulWidget {
   const TerminalScreen({super.key});
@@ -10,39 +14,47 @@ class TerminalScreen extends StatefulWidget {
 
 class _TerminalScreenState extends State<TerminalScreen> {
   final TextEditingController controller = TextEditingController();
-  final ScrollController scrollController = ScrollController();
 
-  final List<String> output = [];
-
-  final PtyBridge bridge = PtyBridge();
+  late final ScreenBuffer buffer;
+  late final SshBridge ssh;
+  late final PtyBridge bridge;
 
   @override
   void initState() {
     super.initState();
 
-    bridge.onOutput = (data) {
-      setState(() {
-        output.add(data);
-      });
+    buffer = ScreenBuffer(
+      rows: 24,
+      cols: 80,
+    );
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (scrollController.hasClients) {
-          scrollController.jumpTo(
-            scrollController.position.maxScrollExtent,
-          );
-        }
-      });
+    ssh = SshBridge();
+
+    bridge = PtyBridge(
+      ssh: ssh,
+      buffer: buffer,
+    );
+
+    bridge.onRefresh = () {
+      if (mounted) {
+        setState(() {});
+      }
     };
 
-    bridge.start("localhost", 22);
+    bridge.start();
+  }
+
+  Future<void> connect() async {
+    await ssh.connect(
+      host: "192.168.1.10",
+      username: "root",
+      password: "1234",
+      port: 22,
+    );
   }
 
   void runCommand(String cmd) {
     if (cmd.trim().isEmpty) return;
-
-    setState(() {
-      output.add("\$ $cmd");
-    });
 
     bridge.write(cmd);
     controller.clear();
@@ -52,7 +64,6 @@ class _TerminalScreenState extends State<TerminalScreen> {
   void dispose() {
     bridge.kill();
     controller.dispose();
-    scrollController.dispose();
     super.dispose();
   }
 
@@ -61,45 +72,23 @@ class _TerminalScreenState extends State<TerminalScreen> {
     return Column(
       children: [
         Expanded(
-          child: Container(
-            width: double.infinity,
-            color: Colors.black,
-            padding: const EdgeInsets.all(12),
-            child: ListView.builder(
-              controller: scrollController,
-              itemCount: output.length,
-              itemBuilder: (context, index) {
-                return SelectableText(
-                  output[index],
-                  style: const TextStyle(
-                    color: Colors.greenAccent,
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                  ),
-                );
-              },
-            ),
+          child: TerminalView(
+            screen: buffer,
           ),
         ),
-
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: controller,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: "Enter command...",
-                  hintStyle: TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.black87,
-                  border: InputBorder.none,
-                ),
                 onSubmitted: runCommand,
+                decoration: const InputDecoration(
+                  hintText: "Command...",
+                ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(Icons.send),
               onPressed: () {
                 runCommand(controller.text);
               },
