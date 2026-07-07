@@ -1,43 +1,71 @@
 import 'dart:async';
-import 'ssh_bridge.dart';
+
 import 'screen_buffer.dart';
+import 'ssh_bridge.dart';
+
+typedef VoidCallback = void Function();
 
 class PtyBridge {
-  final SshBridge ssh;
   final ScreenBuffer buffer;
+  final SshBridge? ssh;
 
-  StreamSubscription? _sub;
+  StreamSubscription<String>? _subscription;
 
-  Function()? onRefresh;
+  VoidCallback? onRefresh;
+
+  bool _running = false;
+
+  bool get running => _running;
 
   PtyBridge({
-    required this.ssh,
     required this.buffer,
+    this.ssh,
   });
 
-  /// start listening SSH output → buffer
   void start() {
-    ssh.onOutput = (data) {
-      _handleOutput(data);
-    };
+    _running = true;
+
+    if (ssh != null) {
+      _subscription = ssh!.outputStream.listen(_handleOutput);
+    }
   }
 
   void _handleOutput(String data) {
-    buffer.write(data);
+    buffer.writeText(data);
     onRefresh?.call();
   }
 
-  /// send input to SSH
-  void write(String input) {
-    ssh.write(input);
+  void write(String text) {
+    if (!_running) return;
+
+    if (ssh != null && ssh!.connected) {
+      ssh!.write("$text\n");
+    } else {
+      buffer.writeText("$text\n");
+      onRefresh?.call();
+    }
+  }
+
+  void print(String text) {
+    buffer.writeText(text);
+    onRefresh?.call();
+  }
+
+  void clear() {
+    buffer.clear();
+    onRefresh?.call();
   }
 
   void resize(int cols, int rows) {
-    ssh.resize(cols, rows);
+    ssh?.resize(cols, rows);
   }
 
   void kill() {
-    _sub?.cancel();
-    ssh.disconnect();
+    _running = false;
+
+    _subscription?.cancel();
+    _subscription = null;
+
+    ssh?.disconnect();
   }
 }
