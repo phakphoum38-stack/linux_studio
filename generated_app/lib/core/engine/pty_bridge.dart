@@ -1,71 +1,176 @@
-import 'dart:async';
-
 import 'screen_buffer.dart';
 import 'ssh_bridge.dart';
 
+
+
 typedef VoidCallback = void Function();
 
-class PtyBridge {
-  final ScreenBuffer buffer;
-  final SshBridge? ssh;
 
-  StreamSubscription<String>? _subscription;
+
+class PtyBridge {
+
+
+  final ScreenBuffer buffer;
+
+
+  final SshBridge ssh;
+
+
 
   VoidCallback? onRefresh;
 
-  bool _running = false;
 
-  bool get running => _running;
+
+  bool running = false;
+
+
+
 
   PtyBridge({
+
     required this.buffer,
-    this.ssh,
+
+    required this.ssh,
+
   });
 
+
+
+
+
   void start() {
-    _running = true;
 
-    if (ssh != null) {
-      _subscription = ssh!.outputStream.listen(_handleOutput);
+
+    running = true;
+
+
+
+    ssh.onOutput =
+        (data) {
+
+
+      buffer.writeText(
+        data,
+      );
+
+
+      onRefresh?.call();
+
+    };
+
+
+
+    ssh.onError =
+        (error) {
+
+
+      buffer.writeText(
+        "\nERROR: $error\n",
+      );
+
+
+      onRefresh?.call();
+
+    };
+  }
+
+
+
+
+
+
+  void write(
+    String text,
+  ) {
+
+
+    if (!running) {
+
+      return;
     }
-  }
 
-  void _handleOutput(String data) {
-    buffer.writeText(data);
-    onRefresh?.call();
-  }
 
-  void write(String text) {
-    if (!_running) return;
 
-    if (ssh != null && ssh!.connected) {
-      ssh!.write("$text\n");
+    if (ssh.connected) {
+
+
+      ssh.write(
+        "$text\n",
+      );
+
+
     } else {
-      buffer.writeText("$text\n");
+
+
+      // local terminal fallback
+
+      buffer.writeText(
+        "$text\n",
+      );
+
+
       onRefresh?.call();
     }
   }
 
-  void print(String text) {
-    buffer.writeText(text);
-    onRefresh?.call();
+
+
+
+
+
+  Future<void> connect({
+
+    required String host,
+
+    required String username,
+
+    required String password,
+
+    int port = 22,
+
+  }) {
+
+
+    return ssh.connect(
+
+      host: host,
+
+      username: username,
+
+      password: password,
+
+      port: port,
+
+    );
   }
 
-  void clear() {
-    buffer.clear();
-    onRefresh?.call();
+
+
+
+
+
+  void resize(
+    int cols,
+    int rows,
+  ) {
+
+    ssh.resize(
+      cols,
+      rows,
+    );
   }
 
-  void resize(int cols, int rows) {
-    ssh?.resize(cols, rows);
-  }
 
-  void kill() {
-    _running = false;
 
-    _subscription?.cancel();
-    _subscription = null;
 
-    ssh?.disconnect();
+
+
+  Future<void> kill() async {
+
+
+    running = false;
+
+
+    await ssh.disconnect();
   }
 }
