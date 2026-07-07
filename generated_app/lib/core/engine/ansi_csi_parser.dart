@@ -1,586 +1,188 @@
-import 'terminal_event.dart';
+class AnsiEvent {}
+
+class TextEvent extends AnsiEvent {
+  final String text;
+
+  TextEvent(this.text);
+}
+
+
+class CsiEvent extends AnsiEvent {
+
+  final String command;
+
+  final List<int> args;
+
+
+  CsiEvent(
+    this.command,
+    this.args,
+  );
+}
 
 
 
 class AnsiCsiParser {
 
 
-  final StringBuffer _text =
-      StringBuffer();
+  String _buffer = '';
 
 
 
-  List<TerminalEvent> parse(
+  List<AnsiEvent> parse(
     String input,
-  ) {
+  ){
 
-    final List<TerminalEvent> events =
-        [];
-
+    final events = <AnsiEvent>[];
 
 
-    int i = 0;
+    _buffer += input;
 
 
 
-    while(
-      i < input.length
-    ) {
+    while(_buffer.isNotEmpty){
 
 
-      final char =
-          input[i];
-
-
-
-      // ESC
-      if(char == '\x1B') {
-
-
-        if(_text.isNotEmpty){
-
-          events.add(
-            TextEvent(
-              _text.toString(),
-            ),
-          );
-
-          _text.clear();
-
-        }
+      final esc =
+          _buffer.indexOf('\x1b');
 
 
 
-        final result =
-            _parseEscape(
-              input,
-              i,
-            );
-
-
-
-        events.addAll(
-          result.events,
-        );
-
-
-        i =
-            result.index;
-
-
-        continue;
-
-      }
-
-
-
-
-
-      // Bell
-
-      if(char == '\x07'){
-
+      if(esc == -1){
 
         events.add(
-          const BellEvent(),
+          TextEvent(
+            _buffer,
+          ),
         );
 
+        _buffer='';
 
-        i++;
+        break;
 
-        continue;
       }
 
 
 
 
-      _text.write(char);
+      if(esc > 0){
 
+        events.add(
 
-      i++;
+          TextEvent(
+            _buffer.substring(
+              0,
+              esc,
+            ),
+          ),
 
-    }
+        );
 
 
+        _buffer =
+            _buffer.substring(
+              esc,
+            );
 
-    if(_text.isNotEmpty){
+      }
 
 
-      events.add(
-        TextEvent(
-          _text.toString(),
-        ),
-      );
-
-
-      _text.clear();
-
-    }
-
-
-
-    return events;
-  }
-
-
-
-
-
-
-
-  _ParseResult _parseEscape(
-    String text,
-    int index,
-  ){
-
-
-    if(
-      index + 1 >= text.length
-    ){
-
-      return _ParseResult(
-        [],
-        index + 1,
-      );
-
-    }
-
-
-
-    // CSI
-
-    if(
-      text[index + 1] == '['
-    ){
-
-      return _parseCSI(
-        text,
-        index + 2,
-      );
-
-    }
-
-
-
-
-
-    // ESC s save cursor
-
-    if(
-      text[index+1]=='7'
-    ){
-
-      return _ParseResult(
-        [
-          const CursorMoveEvent(
-            row: -1,
-            col: -1,
-          )
-        ],
-        index+2,
-      );
-    }
-
-
-
-
-
-    // ESC u restore cursor
-
-    if(
-      text[index+1]=='8'
-    ){
-
-      return _ParseResult(
-        [
-          const CursorMoveEvent(
-            row: -2,
-            col: -2,
-          )
-        ],
-        index+2,
-      );
-    }
-
-
-
-    return _ParseResult(
-      [],
-      index+2,
-    );
-
-  }
-
-
-
-
-
-
-
-
-
-  _ParseResult _parseCSI(
-    String text,
-    int start,
-  ){
-
-
-    List<int> args=[];
-
-
-    String number='';
-
-
-    int i=start;
-
-
-
-    while(
-      i < text.length
-    ){
-
-
-      final c=text[i];
 
 
 
       if(
-        c.codeUnitAt(0)>=0x40 &&
-        c.codeUnitAt(0)<=0x7E
+        !_buffer.startsWith(
+          '\x1b['
+        )
       ){
 
+        _buffer =
+            _buffer.substring(1);
+
+        continue;
+
+      }
 
 
-        if(number.isNotEmpty){
 
-          args.add(
-            int.parse(number),
+
+
+
+      final match =
+          RegExp(
+            r'^\x1b\[([0-9;?]*)([A-Za-z])'
+          )
+          .firstMatch(
+            _buffer,
           );
 
-        }
+
+
+      if(match == null){
+
+        break;
+
+      }
 
 
 
-        return _createEvent(
-          c,
+
+
+
+      final rawArgs =
+          match.group(1)!;
+
+
+      final command =
+          match.group(2)!;
+
+
+
+      final args =
+          rawArgs.isEmpty
+
+          ? <int>[]
+
+          :
+
+          rawArgs
+          .replaceAll(
+            '?',
+            '',
+          )
+          .split(';')
+          .map(
+            (e)=>
+              int.tryParse(e) ?? 0,
+          )
+          .toList();
+
+
+
+
+
+      events.add(
+
+        CsiEvent(
+          command,
           args,
-          i+1,
-        );
+        ),
 
-      }
-
+      );
 
 
 
-      if(c==';'){
 
-
-        args.add(
-          number.isEmpty
-          ?0
-          :int.parse(number),
-        );
-
-
-        number='';
-
-
-
-      } else {
-
-
-        number += c;
-
-      }
-
-
-
-      i++;
+      _buffer =
+          _buffer.substring(
+            match.end,
+          );
 
     }
 
 
-
-    return _ParseResult(
-      [],
-      i,
-    );
+    return events;
 
   }
-
-
-
-
-
-
-
-
-
-  _ParseResult _createEvent(
-    String command,
-    List<int> args,
-    int index,
-  ){
-
-
-
-    switch(command){
-
-
-
-      // Cursor Up
-
-      case 'A':
-
-        return _ParseResult(
-          [
-            CursorMoveEvent(
-              row: -(args.isEmpty?1:args[0]),
-              col: 0,
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-      // Cursor Down
-
-      case 'B':
-
-        return _ParseResult(
-          [
-            CursorMoveEvent(
-              row: args.isEmpty?1:args[0],
-              col:0,
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-      // Cursor Forward
-
-      case 'C':
-
-        return _ParseResult(
-          [
-            CursorMoveEvent(
-              row:0,
-              col:args.isEmpty?1:args[0],
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-      // Cursor Back
-
-      case 'D':
-
-        return _ParseResult(
-          [
-            CursorMoveEvent(
-              row:0,
-              col:-(args.isEmpty?1:args[0]),
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-
-
-      // Cursor position
-
-      case 'H':
-      case 'f':
-
-        return _ParseResult(
-          [
-            CursorPositionEvent(
-              row:
-                (args.isNotEmpty
-                ?args[0]
-                :1)-1,
-
-              col:
-                (args.length>1
-                ?args[1]
-                :1)-1,
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-
-
-      // Clear Display
-
-      case 'J':
-
-        return _ParseResult(
-          [
-            EraseDisplayEvent(
-              args.isEmpty?0:args[0],
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-
-
-
-      // Clear Line
-
-      case 'K':
-
-        return _ParseResult(
-          [
-            EraseLineEvent(
-              args.isEmpty?0:args[0],
-            )
-          ],
-          index,
-        );
-
-
-
-
-
-
-
-      // Color
-
-      case 'm':
-
-        return _colorEvent(
-          args,
-          index,
-        );
-
-
-
-
-
-
-      // Scroll Up
-
-      case 'S':
-
-        return _ParseResult(
-          [
-            ScrollEvent(
-              args.isEmpty?1:args[0],
-            )
-          ],
-          index,
-        );
-
-
-
-      default:
-
-        return _ParseResult(
-          [],
-          index,
-        );
-
-    }
-
-  }
-
-
-
-
-
-
-
-
-  _ParseResult _colorEvent(
-    List<int> args,
-    int index,
-  ){
-
-
-    int fg=37;
-
-    int bg=40;
-
-
-
-    for(final a in args){
-
-
-      if(a>=30 && a<=37){
-
-        fg=a;
-
-      }
-
-
-      if(a>=40 && a<=47){
-
-        bg=a;
-
-      }
-
-    }
-
-
-
-    return _ParseResult(
-      [
-        SetColorEvent(
-          foreground:fg,
-          background:bg,
-        )
-      ],
-      index,
-    );
-
-  }
-
-}
-
-
-
-
-
-
-
-
-
-class _ParseResult {
-
-  final List<TerminalEvent> events;
-
-  final int index;
-
-
-
-  _ParseResult(
-    this.events,
-    this.index,
-  );
 
 }
