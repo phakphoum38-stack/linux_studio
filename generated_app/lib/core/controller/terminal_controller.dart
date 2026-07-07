@@ -6,10 +6,11 @@ import '../input/keyboard_pipeline.dart';
 
 import '../selection/selection_engine.dart';
 
+import '../clipboard/terminal_clipboard.dart';
+
 
 
 class TerminalController {
-
 
 
   final TerminalEngine engine;
@@ -42,6 +43,7 @@ class TerminalController {
 
 
 
+
   TerminalController({
 
     required this.engine,
@@ -58,6 +60,7 @@ class TerminalController {
 
 
   }
+
 
 
 
@@ -87,7 +90,9 @@ class TerminalController {
     engine.onUpdate =
         (){
 
-      onUpdate?.call();
+
+      refresh();
+
 
     };
 
@@ -105,10 +110,16 @@ class TerminalController {
 
 
 
-  /// Send raw terminal data
+
+  // =========================
+  // Terminal Input
+  // =========================
+
 
   void send(
+
     String text,
+
   ){
 
 
@@ -127,10 +138,10 @@ class TerminalController {
 
 
 
-  /// Keyboard event
-
   void sendKey(
+
     String key,
+
   ){
 
 
@@ -149,10 +160,15 @@ class TerminalController {
 
 
 
-  /// Paste support
+  // =========================
+  // Paste Pipeline
+  // =========================
+
 
   void paste(
+
     String text,
+
   ){
 
 
@@ -169,9 +185,11 @@ class TerminalController {
 
     if(data.isNotEmpty){
 
+
       send(
         data,
       );
+
 
     }
 
@@ -186,9 +204,26 @@ class TerminalController {
 
 
 
-  void refresh(){
+  Future<void> pasteClipboard()
 
-    onUpdate?.call();
+  async {
+
+
+    final text =
+        await TerminalClipboard.paste();
+
+
+
+    if(text.isNotEmpty){
+
+
+      paste(
+        text,
+      );
+
+
+    }
+
 
   }
 
@@ -200,9 +235,142 @@ class TerminalController {
 
 
 
+  // =========================
+  // Selection System
+  // =========================
+
+
+
+  void startSelection(
+
+    int row,
+
+    int col,
+
+  ){
+
+
+    selection.start(
+      row,
+      col,
+    );
+
+
+    refresh();
+
+  }
+
+
+
+
+
+
+
+
+  void updateSelection(
+
+    int row,
+
+    int col,
+
+  ){
+
+
+    selection.update(
+      row,
+      col,
+    );
+
+
+    refresh();
+
+
+  }
+
+
+
+
+
+
+
+
+  void endSelection(){
+
+
+    selection.end();
+
+
+    refresh();
+
+
+  }
+
+
+
+
+
+
+
+
+
+  Future<void> copySelection()
+
+  async {
+
+
+
+    final text =
+        selection.extract(
+          buffer,
+        );
+
+
+
+    await TerminalClipboard.copy(
+      text,
+    );
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void clearSelection(){
+
+
+    selection.clear();
+
+
+    refresh();
+
+
+  }
+
+
+
+
+
+
+
+
+
+  // =========================
+  // Resize
+  // =========================
+
+
   void resize(
+
     int cols,
+
     int rows,
+
   ){
 
 
@@ -210,6 +378,27 @@ class TerminalController {
       cols,
       rows,
     );
+
+
+  }
+
+
+
+
+
+
+
+
+
+  // =========================
+  // Render
+  // =========================
+
+
+  void refresh(){
+
+
+    onUpdate?.call();
 
 
   }
