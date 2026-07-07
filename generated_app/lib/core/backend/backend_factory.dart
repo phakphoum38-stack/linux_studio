@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'terminal_backend.dart';
 
-import 'pty_terminal_backend.dart';
+import 'native_pty_backend.dart';
 import 'ssh_terminal_backend.dart';
 
 
@@ -31,9 +31,7 @@ class BackendFactory {
   }) {
 
 
-
     switch(mode){
-
 
 
       case TerminalMode.local:
@@ -57,6 +55,8 @@ class BackendFactory {
 
 
 
+
+
   static TerminalBackend _createLocal(){
 
 
@@ -66,9 +66,10 @@ class BackendFactory {
       Platform.isMacOS
     ){
 
-      return PtyTerminalBackend();
+      return NativePtyBackend();
 
     }
+
 
 
 
@@ -78,12 +79,15 @@ class BackendFactory {
       Platform.isWindows
     ){
 
+      //
       // Phase 16.9
-      // replace with ConPTY backend
+      // Windows ConPTY
+      //
 
-      return PtyTerminalBackend();
+      return NativePtyBackend();
 
     }
+
 
 
 
@@ -97,6 +101,8 @@ class BackendFactory {
 
 
   }
+
+
 
 
 
