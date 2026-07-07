@@ -7,13 +7,19 @@ class SelectionSystem {
   int? endRow;
   int? endCol;
 
+
   bool get active =>
       startRow != null &&
       startCol != null &&
       endRow != null &&
       endCol != null;
 
-  void start(int row, int col) {
+
+
+  void start(
+    int row,
+    int col,
+  ) {
     startRow = row;
     startCol = col;
 
@@ -21,53 +27,142 @@ class SelectionSystem {
     endCol = col;
   }
 
-  void update(int row, int col) {
+
+
+  void update(
+    int row,
+    int col,
+  ) {
+    if (!active) {
+      return;
+    }
+
     endRow = row;
     endCol = col;
   }
 
+
+
   void clear() {
+
     startRow = null;
     startCol = null;
+
     endRow = null;
     endCol = null;
   }
 
-  String extract(ScreenBuffer buffer) {
+
+
+
+  String extract(
+    ScreenBuffer buffer,
+  ) {
+
     if (!active) {
       return '';
     }
 
-    final topRow = startRow! <= endRow! ? startRow! : endRow!;
-    final bottomRow = startRow! <= endRow! ? endRow! : startRow!;
 
-    final sb = StringBuffer();
+    int sRow = startRow!;
+    int eRow = endRow!;
 
-    for (int row = topRow; row <= bottomRow; row++) {
+    int sCol = startCol!;
+    int eCol = endCol!;
+
+
+
+    // normalize direction
+
+    if (sRow > eRow) {
+      final t = sRow;
+      sRow = eRow;
+      eRow = t;
+
+      final c = sCol;
+      sCol = eCol;
+      eCol = c;
+    }
+
+
+
+    final result = StringBuffer();
+
+
+
+    for (
+      int row = sRow;
+      row <= eRow;
+      row++
+    ) {
+
+      if (row < 0 ||
+          row >= buffer.rows) {
+        continue;
+      }
+
+
       int left = 0;
       int right = buffer.cols - 1;
 
-      if (row == startRow && row == endRow) {
-        left = startCol! < endCol! ? startCol! : endCol!;
-        right = startCol! > endCol! ? startCol! : endCol!;
-      } else if (row == startRow) {
-        left = startCol!;
-      } else if (row == endRow) {
-        right = endCol!;
+
+
+      if (sRow == eRow) {
+
+        left = sCol < eCol
+            ? sCol
+            : eCol;
+
+        right = sCol > eCol
+            ? sCol
+            : eCol;
+
+      }
+      else if (row == sRow) {
+
+        left = sCol;
+
+      }
+      else if (row == eRow) {
+
+        right = eCol;
       }
 
-      left = left.clamp(0, buffer.cols - 1);
-      right = right.clamp(0, buffer.cols - 1);
 
-      for (int col = left; col <= right; col++) {
-        sb.write(buffer.buffer[row][col].char);
+
+      left = left.clamp(
+        0,
+        buffer.cols - 1,
+      );
+
+      right = right.clamp(
+        0,
+        buffer.cols - 1,
+      );
+
+
+
+      for (
+        int col = left;
+        col <= right;
+        col++
+      ) {
+
+        result.write(
+          buffer
+              .cellAt(row, col)
+              .char,
+        );
       }
 
-      if (row != bottomRow) {
-        sb.writeln();
+
+
+      if (row != eRow) {
+        result.writeln();
       }
     }
 
-    return sb.toString();
+
+    return result.toString();
   }
 }
