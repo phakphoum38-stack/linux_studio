@@ -8,6 +8,8 @@ import '../selection/selection_engine.dart';
 
 import '../clipboard/terminal_clipboard.dart';
 
+import '../terminal/terminal_size.dart';
+
 
 
 class TerminalController {
@@ -38,6 +40,15 @@ class TerminalController {
 
 
   Function()? onUpdate;
+
+
+
+  TerminalSize? terminalSize;
+
+
+
+  int _lastCols = 0;
+  int _lastRows = 0;
 
 
 
@@ -112,7 +123,7 @@ class TerminalController {
 
 
   // =========================
-  // Terminal Input
+  // Input
   // =========================
 
 
@@ -122,11 +133,16 @@ class TerminalController {
 
   ){
 
+    if(text.isEmpty){
+
+      return;
+
+    }
+
 
     engine.write(
       text,
     );
-
 
   }
 
@@ -144,11 +160,9 @@ class TerminalController {
 
   ){
 
-
     keyboard.sendKey(
       key,
     );
-
 
   }
 
@@ -161,7 +175,7 @@ class TerminalController {
 
 
   // =========================
-  // Paste Pipeline
+  // Clipboard
   // =========================
 
 
@@ -177,7 +191,6 @@ class TerminalController {
     );
 
 
-
     final data =
         input.flush();
 
@@ -185,11 +198,9 @@ class TerminalController {
 
     if(data.isNotEmpty){
 
-
       send(
         data,
       );
-
 
     }
 
@@ -216,11 +227,9 @@ class TerminalController {
 
     if(text.isNotEmpty){
 
-
       paste(
         text,
       );
-
 
     }
 
@@ -235,10 +244,34 @@ class TerminalController {
 
 
 
-  // =========================
-  // Selection System
-  // =========================
+  Future<void> copySelection()
 
+  async {
+
+
+    final text =
+        selection.extract(
+          buffer,
+        );
+
+
+    await TerminalClipboard.copy(
+      text,
+    );
+
+  }
+
+
+
+
+
+
+
+
+
+  // =========================
+  // Selection
+  // =========================
 
 
   void startSelection(
@@ -266,7 +299,6 @@ class TerminalController {
 
 
 
-
   void updateSelection(
 
     int row,
@@ -284,9 +316,7 @@ class TerminalController {
 
     refresh();
 
-
   }
-
 
 
 
@@ -302,38 +332,7 @@ class TerminalController {
 
     refresh();
 
-
   }
-
-
-
-
-
-
-
-
-
-  Future<void> copySelection()
-
-  async {
-
-
-
-    final text =
-        selection.extract(
-          buffer,
-        );
-
-
-
-    await TerminalClipboard.copy(
-      text,
-    );
-
-
-  }
-
-
 
 
 
@@ -349,7 +348,6 @@ class TerminalController {
 
     refresh();
 
-
   }
 
 
@@ -361,7 +359,7 @@ class TerminalController {
 
 
   // =========================
-  // Resize
+  // Terminal Resize
   // =========================
 
 
@@ -374,11 +372,48 @@ class TerminalController {
   ){
 
 
+
+    if(cols <= 0 ||
+       rows <= 0){
+
+      return;
+
+    }
+
+
+
+
+    if(cols == _lastCols &&
+       rows == _lastRows){
+
+      return;
+
+    }
+
+
+
+
+    _lastCols = cols;
+    _lastRows = rows;
+
+
+
+    terminalSize =
+        TerminalSize(
+          cols: cols,
+          rows: rows,
+        );
+
+
+
     engine.resize(
       cols,
       rows,
     );
 
+
+
+    refresh();
 
   }
 
@@ -390,16 +425,9 @@ class TerminalController {
 
 
 
-  // =========================
-  // Render
-  // =========================
-
-
   void refresh(){
 
-
     onUpdate?.call();
-
 
   }
 
