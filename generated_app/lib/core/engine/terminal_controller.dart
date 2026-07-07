@@ -1,104 +1,320 @@
-import 'screen_buffer.dart';
 import 'terminal_engine.dart';
+import 'screen_buffer.dart';
 import 'selection_engine.dart';
 import 'input_pipeline.dart';
+import 'ansi_csi_parser.dart';
+
+
 
 class TerminalController {
-  final TerminalEngine engine = TerminalEngine();
 
-  final InputPipeline input = InputPipeline();
 
-  final SelectionEngine selection = SelectionEngine();
+  final TerminalEngine engine;
+
+
+  final InputPipeline input =
+      InputPipeline();
+
+
+  final SelectionEngine selection =
+      SelectionEngine();
+
+
 
   late ScreenBuffer buffer;
 
+
+
   Function()? onUpdate;
+
+
+
+
+  TerminalController({
+    required this.engine,
+  });
+
+
+
+
+
 
 
   Future<void> start(
     ScreenBuffer screen,
     Function() render,
-  ) async {
+  )
+  async {
+
+
     buffer = screen;
 
     onUpdate = render;
 
 
-    await engine.start(
-      (event) {
 
-        String? text;
+    engine.onUpdate = () {
 
+      onUpdate?.call();
 
-        if (event is String) {
-          text = event;
-        }
-        else if (event.text != null) {
-          text = event.text;
-        }
+    };
 
 
-        if (text != null && text.isNotEmpty) {
 
-          buffer.writeText(
-            text,
-          );
+    await engine.start();
 
-          onUpdate?.call();
-        }
-      },
-    );
+
   }
 
 
-  /// Send keyboard input
+
+
+
+
+
+
+  //
+  // Send normal text
+  //
+
   void send(
     String text,
-  ) {
-    if (text.isEmpty) {
-      return;
-    }
+  ){
 
     engine.write(
       text,
     );
+
   }
 
 
-  /// Paste text
-  void paste(
-    String text,
-  ) {
-    if (text.isEmpty) {
-      return;
+
+
+
+
+
+  //
+  // Keyboard mapping
+  //
+
+  void sendKey(
+    String key,
+  ){
+
+
+    switch(key){
+
+
+      case 'ENTER':
+
+        engine.write(
+          '\r',
+        );
+
+        break;
+
+
+
+
+
+      case 'BACKSPACE':
+
+        engine.write(
+          '\x7f',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'TAB':
+
+        engine.write(
+          '\t',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'CTRL_C':
+
+        engine.write(
+          '\x03',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'CTRL_D':
+
+        engine.write(
+          '\x04',
+        );
+
+        break;
+
+
+
+
+
+
+
+      case 'ARROW_UP':
+
+        engine.write(
+          '\x1b[A',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'ARROW_DOWN':
+
+        engine.write(
+          '\x1b[B',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'ARROW_RIGHT':
+
+        engine.write(
+          '\x1b[C',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'ARROW_LEFT':
+
+        engine.write(
+          '\x1b[D',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'HOME':
+
+        engine.write(
+          '\x1b[H',
+        );
+
+        break;
+
+
+
+
+
+
+      case 'END':
+
+        engine.write(
+          '\x1b[F',
+        );
+
+        break;
+
+
+
+
+
+
+      default:
+
+        engine.write(
+          key,
+        );
+
     }
 
+
+  }
+
+
+
+
+
+
+
+
+
+  void paste(
+    String text,
+  ){
 
     input.add(
       text,
     );
 
 
-    final data = input.flush();
+    final data =
+        input.flush();
 
 
-    if (data.isNotEmpty) {
+    if(data.isNotEmpty){
 
       engine.write(
         data,
       );
+
     }
+
   }
 
 
-  /// Force UI refresh
-  void refresh() {
+
+
+
+
+
+
+  void refresh(){
+
     onUpdate?.call();
+
   }
 
 
-  /// Stop terminal
-  void stop() {
-    engine.kill();
+
+
+
+
+
+
+  Future<void> stop()
+  async {
+
+    await engine.kill();
+
   }
+
 }
