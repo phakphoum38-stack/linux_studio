@@ -1,46 +1,91 @@
 import 'plugin.dart';
 
+
 class PluginManager {
-  final List<TerminalPlugin> _plugins = [];
 
-  List<TerminalPlugin> get plugins =>
-      List.unmodifiable(_plugins);
+  final List<TerminalPlugin> plugins = [];
 
-  void register(TerminalPlugin plugin) {
-    if (_plugins.contains(plugin)) {
+
+
+  /// Register plugin
+
+  void register(
+    TerminalPlugin plugin,
+  ) {
+
+    if (plugins.contains(plugin)) {
       return;
     }
 
-    _plugins.add(plugin);
+
+    plugins.add(plugin);
+
     plugin.onInit();
   }
 
-  void unregister(TerminalPlugin plugin) {
-    if (_plugins.remove(plugin)) {
-      plugin.onDispose();
+
+
+
+  /// Remove plugin
+
+  void unregister(
+    TerminalPlugin plugin,
+  ) {
+
+    plugin.dispose();
+
+    plugins.remove(plugin);
+  }
+
+
+
+
+  /// Send terminal data
+
+  void emitData(
+    String data,
+  ) {
+
+    for (final plugin in plugins) {
+
+      plugin.onData(
+        data,
+      );
     }
   }
 
-  void emitData(String data) {
-    for (final plugin in _plugins) {
-      plugin.onData(data);
-    }
-  }
+
+
+
+  /// Send VT100 command
 
   void emitCommand(
     String command,
     List<int> args,
   ) {
-    for (final plugin in _plugins) {
-      plugin.onCommand(command, args);
+
+    for (final plugin in plugins) {
+
+      plugin.onCommand(
+        command,
+        args,
+      );
     }
   }
 
+
+
+
+  /// Dispose all plugins
+
   void dispose() {
-    for (final plugin in _plugins) {
-      plugin.onDispose();
+
+    for (final plugin in plugins) {
+
+      plugin.dispose();
     }
 
-    _plugins.clear();
+
+    plugins.clear();
   }
 }
