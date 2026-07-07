@@ -12,13 +12,16 @@ class TerminalController {
 
   Function()? onUpdate;
 
-  Future<void> start(ScreenBuffer screen, Function() render) async {
+  Future<void> start(
+    ScreenBuffer screen,
+    Function() render,
+  ) async {
     buffer = screen;
     onUpdate = render;
 
     await engine.start((event) {
       if (event is String) {
-        buffer.write(event);
+        buffer.writeText(event);
         onUpdate?.call();
       }
     });
@@ -30,7 +33,16 @@ class TerminalController {
 
   void paste(String text) {
     input.add(text);
-    engine.write(input.flush());
+
+    final data = input.flush();
+
+    if (data.isNotEmpty) {
+      engine.write(data);
+    }
+  }
+
+  void refresh() {
+    onUpdate?.call();
   }
 
   void stop() {
