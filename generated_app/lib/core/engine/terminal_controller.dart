@@ -173,7 +173,7 @@ class TerminalController {
       case 'ARROW_UP':
 
         engine.write(
-          '\x1b[A',
+          TerminalKeyboard.key("UP")
         );
 
         break;
