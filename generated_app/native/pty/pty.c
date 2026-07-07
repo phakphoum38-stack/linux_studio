@@ -12,28 +12,7 @@ static int master_fd = -1;
 
 static pid_t child_pid;
 
-extern int master_fd;
 
-
-int pty_read(
-
-    char* buffer,
-
-    int size
-
-){
-
-    return read(
-
-        master_fd,
-
-        buffer,
-
-        size
-
-    );
-
-}
 
 int pty_spawn(
     const char* shell,
