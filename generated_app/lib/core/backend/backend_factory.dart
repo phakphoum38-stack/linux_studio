@@ -4,6 +4,7 @@ import 'terminal_backend.dart';
 
 import 'native_pty_backend.dart';
 import 'ssh_terminal_backend.dart';
+import 'conpty_terminal_backend.dart';
 
 
 
@@ -29,6 +30,7 @@ class BackendFactory {
         TerminalMode.local,
 
   }) {
+
 
 
     switch(mode){
@@ -75,18 +77,15 @@ class BackendFactory {
 
 
 
+
     if(
       Platform.isWindows
     ){
 
-      //
-      // Phase 16.9
-      // Windows ConPTY
-      //
-
-      return NativePtyBackend();
+      return ConPtyTerminalBackend();
 
     }
+
 
 
 
@@ -117,8 +116,6 @@ class BackendFactory {
 
 
   }
-
-
 
 
 
