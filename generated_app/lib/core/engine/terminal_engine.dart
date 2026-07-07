@@ -4,10 +4,12 @@ import 'dart:io';
 
 import 'ansi_csi_parser.dart';
 import 'screen_buffer.dart';
-import 'vt100_controller.dart';
+import 'vt100_state_machine.dart';
+
 
 
 class TerminalEngine {
+
 
   Process? _process;
 
@@ -19,8 +21,8 @@ class TerminalEngine {
       AnsiCsiParser();
 
 
-  final VT100Controller vt100 =
-      VT100Controller();
+
+  late final VT100StateMachine vt100;
 
 
 
@@ -30,7 +32,17 @@ class TerminalEngine {
 
   TerminalEngine({
     required this.buffer,
-  });
+  }) {
+
+    vt100 =
+        VT100StateMachine(
+          buffer,
+        );
+
+  }
+
+
+
 
 
 
@@ -41,10 +53,12 @@ class TerminalEngine {
         await Process.start(
           'bash',
           [
-            '-i'
+            '-i',
           ],
           runInShell: true,
         );
+
+
 
 
 
@@ -59,6 +73,8 @@ class TerminalEngine {
 
 
 
+
+
     _process!
         .stderr
         .transform(
@@ -68,7 +84,9 @@ class TerminalEngine {
           _handleOutput,
         );
 
+
   }
+
 
 
 
@@ -80,32 +98,20 @@ class TerminalEngine {
   ){
 
     final events =
-        parser.parse(data);
+        parser.parse(
+          data,
+        );
 
 
 
     for(final event in events){
 
-      if(event is String){
-
-        buffer.writeText(
-          event,
-        );
-
-
-      }
-
-      else {
-
-        vt100.execute(
-          event.command,
-          event.args,
-          buffer,
-        );
-
-      }
+      vt100.handle(
+        event,
+      );
 
     }
+
 
 
     onUpdate?.call();
@@ -117,12 +123,19 @@ class TerminalEngine {
 
 
 
+
+
+
   void write(
     String input,
   ){
 
-    if(_process == null)
+    if(_process == null){
+
       return;
+
+    }
+
 
 
     _process!
@@ -131,7 +144,32 @@ class TerminalEngine {
           input,
         );
 
+
+    _process!
+        .stdin
+        .flush();
+
   }
+
+
+
+
+
+
+
+
+
+  void sendKey(
+    String key,
+  ){
+
+    write(key);
+
+  }
+
+
+
+
 
 
 
@@ -142,8 +180,10 @@ class TerminalEngine {
     int rows,
   ){
 
-    // Phase 16.2
-    // PTY resize
+    //
+    // Phase 16.6
+    // real PTY resize
+    //
 
 
   }
@@ -152,12 +192,27 @@ class TerminalEngine {
 
 
 
+
+
+
+
   Future<void> kill()
   async {
 
-    _process?.kill();
+
+    await _process
+        ?.stdin
+        .flush();
+
+
+
+    _process?.kill(
+      ProcessSignal.sigkill,
+    );
+
 
     _process=null;
+
 
   }
 
