@@ -1,20 +1,26 @@
-/// Base class for all terminal plugins.
 abstract class TerminalPlugin {
-  /// Unique plugin identifier.
+
+  /// Unique plugin name
   String get id;
 
-  /// Called when the plugin is registered.
-  void onInit();
 
-  /// Called when terminal receives text.
-  void onData(String data);
+  /// Called when plugin registered
+  void onInit() {}
 
-  /// Called when a terminal command is received.
+
+  /// Receive terminal output stream
+  void onData(
+    String data,
+  ) {}
+
+
+  /// Receive VT100 command
   void onCommand(
     String command,
     List<int> args,
-  );
+  ) {}
 
-  /// Called before the plugin is removed.
-  void onDispose() {}
+
+  /// Cleanup
+  void dispose() {}
 }
