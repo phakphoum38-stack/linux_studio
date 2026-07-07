@@ -1,7 +1,10 @@
 abstract class TerminalBackend {
 
 
-  Stream<String> get output;
+  Function(String data)? onOutput;
+
+
+  Function(String error)? onError;
 
 
 
@@ -22,7 +25,7 @@ abstract class TerminalBackend {
 
 
 
-  Future<void> kill();
+  Future<void> stop();
 
 
 }
