@@ -1,52 +1,96 @@
-import '../engine/screen_buffer.dart';
 import '../engine/terminal_engine.dart';
+import '../engine/screen_buffer.dart';
 
-import '../backend/terminal_backend.dart';
+import '../input/input_pipeline.dart';
+import '../input/keyboard_pipeline.dart';
+
+import '../selection/selection_engine.dart';
+
 
 
 class TerminalController {
 
 
-  final ScreenBuffer buffer;
-
 
   final TerminalEngine engine;
+
+
+
+  final InputPipeline input =
+      InputPipeline();
+
+
+
+  final KeyboardPipeline keyboard =
+      KeyboardPipeline();
+
+
+
+  final SelectionEngine selection =
+      SelectionEngine();
+
+
+
+
+  late ScreenBuffer buffer;
+
 
 
   Function()? onUpdate;
 
 
 
+
+
   TerminalController({
 
-    required this.buffer,
+    required this.engine,
 
-    required TerminalBackend backend,
-
-  }) :
-
-    engine =
-      TerminalEngine(
-        backend: backend,
-        buffer: buffer,
-      );
+  }) {
 
 
+    keyboard.onInput =
+        (data){
+
+      send(data);
+
+    };
+
+
+  }
 
 
 
 
 
-  Future<void> start()
+
+
+
+  Future<void> start(
+
+    ScreenBuffer screen,
+
+    Function() render,
+
+  )
+
   async {
 
 
+    buffer = screen;
+
+
+    onUpdate = render;
+
+
+
     engine.onUpdate =
-        () {
+        (){
 
       onUpdate?.call();
 
     };
+
 
 
     await engine.start();
@@ -60,14 +104,19 @@ class TerminalController {
 
 
 
-  void write(
+
+  /// Send raw terminal data
+
+  void send(
     String text,
   ){
+
 
     engine.write(
       text,
     );
 
+
   }
 
 
@@ -76,16 +125,74 @@ class TerminalController {
 
 
 
+
+
+  /// Keyboard event
 
   void sendKey(
     String key,
   ){
 
-    engine.sendKey(
+
+    keyboard.sendKey(
       key,
     );
 
+
   }
+
+
+
+
+
+
+
+
+
+  /// Paste support
+
+  void paste(
+    String text,
+  ){
+
+
+    input.add(
+      text,
+    );
+
+
+
+    final data =
+        input.flush();
+
+
+
+    if(data.isNotEmpty){
+
+      send(
+        data,
+      );
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void refresh(){
+
+    onUpdate?.call();
+
+  }
+
+
 
 
 
@@ -98,12 +205,15 @@ class TerminalController {
     int rows,
   ){
 
+
     engine.resize(
       cols,
       rows,
     );
 
+
   }
+
 
 
 
@@ -113,6 +223,7 @@ class TerminalController {
 
 
   Future<void> stop()
+
   async {
 
 
@@ -120,6 +231,7 @@ class TerminalController {
 
 
   }
+
 
 
 }
