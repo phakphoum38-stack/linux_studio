@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+
 import '../engine/screen_buffer.dart';
-import '../engine/terminal_cell.dart';
 
 class TerminalPainter extends CustomPainter {
   final ScreenBuffer screen;
@@ -15,50 +15,70 @@ class TerminalPainter extends CustomPainter {
   });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = Colors.black;
+  void paint(
+    Canvas canvas,
+    Size size,
+  ) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = Colors.black,
+    );
 
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    final textStyle = TextStyle(
-      color: Colors.greenAccent,
+    final baseStyle = TextStyle(
       fontSize: fontSize,
       fontFamily: fontFamily,
+      color: Colors.white,
     );
 
     final rowHeight = fontSize * 1.25;
     final colWidth = fontSize * 0.62;
 
-    for (int r = 0; r < screen.rows; r++) {
-      for (int c = 0; c < screen.cols; c++) {
-        final cell = screen.buffer[r][c];
+    for (int row = 0; row < screen.rows; row++) {
+      for (int col = 0; col < screen.cols; col++) {
+        final cell = screen.buffer[row][col];
 
-        // skip empty cell
-        if (cell.char == ' ') continue;
+        if (cell.char == ' ') {
+          continue;
+        }
 
-        final painter = TextPainter(
+        final textPainter = TextPainter(
           text: TextSpan(
             text: cell.char,
-            style: textStyle.copyWith(
+            style: baseStyle.copyWith(
               color: _ansiColor(cell.fg),
               backgroundColor: _ansiBg(cell.bg),
+              fontWeight: cell.bold
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              decoration: cell.underline
+                  ? TextDecoration.underline
+                  : TextDecoration.none,
+              fontStyle: cell.italic
+                  ? FontStyle.italic
+                  : FontStyle.normal,
             ),
           ),
           textDirection: TextDirection.ltr,
         );
 
-        painter.layout();
+        textPainter.layout();
 
-        painter.paint(
+        textPainter.paint(
           canvas,
-          Offset(c * colWidth, r * rowHeight),
+          Offset(
+            col * colWidth,
+            row * rowHeight,
+          ),
         );
       }
     }
   }
 
-  Color _ansiColor(int v) {
-    switch (v) {
+
+  Color _ansiColor(
+    int value,
+  ) {
+    switch (value) {
       case 30:
         return Colors.black;
       case 31:
@@ -79,8 +99,11 @@ class TerminalPainter extends CustomPainter {
     }
   }
 
-  Color _ansiBg(int v) {
-    switch (v) {
+
+  Color _ansiBg(
+    int value,
+  ) {
+    switch (value) {
       case 40:
         return Colors.black;
       case 41:
@@ -102,8 +125,11 @@ class TerminalPainter extends CustomPainter {
     }
   }
 
+
   @override
-  bool shouldRepaint(covariant TerminalPainter oldDelegate) {
-    return oldDelegate.screen != screen;
+  bool shouldRepaint(
+    covariant TerminalPainter oldDelegate,
+  ) {
+    return true;
   }
 }
