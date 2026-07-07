@@ -1,30 +1,43 @@
 import 'dart:async';
+import 'ssh_bridge.dart';
+import 'screen_buffer.dart';
 
 class PtyBridge {
-  Function(String data)? onOutput;
+  final SshBridge ssh;
+  final ScreenBuffer buffer;
 
-  bool _connected = false;
+  StreamSubscription? _sub;
 
+  Function()? onRefresh;
+
+  PtyBridge({
+    required this.ssh,
+    required this.buffer,
+  });
+
+  /// start listening SSH output → buffer
   void start() {
-    _connected = true;
-
-    // mock shell output
-    Timer.periodic(const Duration(seconds: 2), (t) {
-      if (!_connected) {
-        t.cancel();
-        return;
-      }
-      onOutput?.call("terminal: heartbeat\n");
-    });
+    ssh.onOutput = (data) {
+      _handleOutput(data);
+    };
   }
 
-  void write(String input) {
-    if (!_connected) return;
+  void _handleOutput(String data) {
+    buffer.write(data);
+    onRefresh?.call();
+  }
 
-    onOutput?.call("\$ $input\n");
+  /// send input to SSH
+  void write(String input) {
+    ssh.write(input);
+  }
+
+  void resize(int cols, int rows) {
+    ssh.resize(cols, rows);
   }
 
   void kill() {
-    _connected = false;
+    _sub?.cancel();
+    ssh.disconnect();
   }
 }
