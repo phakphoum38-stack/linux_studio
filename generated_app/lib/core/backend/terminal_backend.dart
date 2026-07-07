@@ -1,16 +1,18 @@
 abstract class TerminalBackend {
 
 
-  Function(String data)? onOutput;
-
-  Function(String error)? onError;
+  Stream<String> get output;
 
 
 
   Future<void> start();
 
 
-  void write(String data);
+
+  void write(
+    String data,
+  );
+
 
 
   void resize(
@@ -19,8 +21,8 @@ abstract class TerminalBackend {
   );
 
 
-  Future<void> stop();
 
+  Future<void> kill();
 
 
 }
