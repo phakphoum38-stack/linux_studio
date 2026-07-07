@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'terminal_backend.dart';
@@ -14,16 +13,13 @@ class PtyTerminalBackend
 
 
 
-  final StreamController<String>
-      _output =
-      StreamController.broadcast();
-
+  @override
+  Function(String data)? onOutput;
 
 
 
   @override
-  Stream<String> get output =>
-      _output.stream;
+  Function(String error)? onError;
 
 
 
@@ -36,48 +32,97 @@ class PtyTerminalBackend
   async {
 
 
-    _process =
-        await Process.start(
-
-      'bash',
-
-      [
-        '-i'
-      ],
-
-      environment: {
-
-        ...Platform.environment,
-
-        'TERM':
-          'xterm-256color',
-
-      },
-
-    );
+    try {
 
 
+      _process =
+          await Process.start(
+
+        'bash',
+
+        [
+          '-i',
+        ],
 
 
-    _process!
-        .stdout
-        .transform(
-          systemEncoding.decoder,
-        )
-        .listen(
-          _output.add,
-        );
+        environment: {
+
+
+          ...Platform.environment,
+
+
+          'TERM':
+              'xterm-256color',
+
+
+          'COLORTERM':
+              'truecolor',
+
+
+        },
+
+
+      );
 
 
 
-    _process!
-        .stderr
-        .transform(
-          systemEncoding.decoder,
-        )
-        .listen(
-          _output.add,
-        );
+
+
+
+
+      _process!
+          .stdout
+          .transform(
+            systemEncoding.decoder,
+          )
+          .listen(
+
+            (data){
+
+              onOutput?.call(
+                data,
+              );
+
+            },
+
+          );
+
+
+
+
+
+
+
+
+      _process!
+          .stderr
+          .transform(
+            systemEncoding.decoder,
+          )
+          .listen(
+
+            (data){
+
+              onOutput?.call(
+                data,
+              );
+
+            },
+
+          );
+
+
+
+
+    }
+
+    catch(e){
+
+      onError?.call(
+        e.toString(),
+      );
+
+    }
 
 
   }
@@ -95,11 +140,27 @@ class PtyTerminalBackend
     String data,
   ){
 
-    _process?
+
+    if(_process == null){
+
+      return;
+
+    }
+
+
+
+    _process!
         .stdin
         .write(
           data,
         );
+
+
+
+    _process!
+        .stdin
+        .flush();
+
 
   }
 
@@ -122,9 +183,11 @@ class PtyTerminalBackend
 
 
     //
-    // ioctl TIOCSWINSZ
+    // Phase 16.8.8
     //
-    // native PTY resize
+    // ioctl(TIOCSWINSZ)
+    //
+    // real PTY resize
     //
 
 
@@ -139,7 +202,7 @@ class PtyTerminalBackend
 
 
   @override
-  Future<void> kill()
+  Future<void> stop()
   async {
 
 
@@ -147,7 +210,7 @@ class PtyTerminalBackend
 
 
 
-    await _output.close();
+    _process = null;
 
 
   }
