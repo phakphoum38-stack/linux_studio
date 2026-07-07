@@ -1,5 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'terminal_backend.dart';
-import 'package:flutter_pty/flutter_pty.dart';
 
 
 
@@ -8,17 +10,22 @@ class PtyTerminalBackend
 
 
 
-  Pty? _pty;
+  Process? _process;
+
+
+
+  final StreamController<String>
+      _output =
+      StreamController.broadcast();
+
 
 
 
   @override
-  Function(String data)? onOutput;
+  Stream<String> get output =>
+      _output.stream;
 
 
-
-  @override
-  Function(String error)? onError;
 
 
 
@@ -29,59 +36,53 @@ class PtyTerminalBackend
   async {
 
 
-    try {
+    _process =
+        await Process.start(
 
+      'bash',
 
-      _pty =
-          Pty.start(
-            "/bin/bash",
+      [
+        '-i'
+      ],
 
-            arguments:[
-              "-i",
-            ],
+      environment: {
 
+        ...Platform.environment,
 
-            environment:{
+        'TERM':
+          'xterm-256color',
 
-              "TERM":
-                "xterm-256color",
+      },
 
-            },
-
-
-            columns:80,
-
-            rows:24,
-
-          );
+    );
 
 
 
 
-      _pty!
-          .output
-          .listen((data){
-
-        onOutput?.call(
-          String.fromCharCodes(data),
+    _process!
+        .stdout
+        .transform(
+          systemEncoding.decoder,
+        )
+        .listen(
+          _output.add,
         );
 
-      });
 
 
-
-    }
-
-    catch(e){
-
-      onError?.call(
-        e.toString(),
-      );
-
-    }
+    _process!
+        .stderr
+        .transform(
+          systemEncoding.decoder,
+        )
+        .listen(
+          _output.add,
+        );
 
 
   }
+
+
 
 
 
@@ -94,11 +95,16 @@ class PtyTerminalBackend
     String data,
   ){
 
-    _pty?.input.add(
-      data.codeUnits,
-    );
+    _process?
+        .stdin
+        .write(
+          data,
+        );
 
   }
+
+
+
 
 
 
@@ -107,16 +113,24 @@ class PtyTerminalBackend
 
   @override
   void resize(
+
     int cols,
+
     int rows,
+
   ){
 
-    _pty?.resize(
-      rows,
-      cols,
-    );
+
+    //
+    // ioctl TIOCSWINSZ
+    //
+    // native PTY resize
+    //
+
 
   }
+
+
 
 
 
@@ -125,12 +139,19 @@ class PtyTerminalBackend
 
 
   @override
-  Future<void> stop()
+  Future<void> kill()
   async {
 
-    await _pty?.kill();
+
+    _process?.kill();
+
+
+
+    await _output.close();
+
 
   }
+
 
 
 }
