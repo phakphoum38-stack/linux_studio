@@ -7,28 +7,71 @@ class TerminalSession {
   final TerminalEngine engine = TerminalEngine();
 
   late ScreenBuffer screen;
-  final ScrollbackBuffer scrollback = ScrollbackBuffer();
-  final DiffRenderer diff = DiffRenderer();
+
+  final ScrollbackBuffer scrollback =
+      ScrollbackBuffer();
+
+  final DiffRenderer diff =
+      DiffRenderer();
 
   Function()? onUpdate;
 
-  Future<void> start(ScreenBuffer buffer, Function() render) async {
+
+  Future<void> start(
+    ScreenBuffer buffer,
+    Function() render,
+  ) async {
+
     screen = buffer;
+
     onUpdate = render;
 
-    await engine.start((event) {
-      // text stream only for now
-      if (event.text != null) {
-        screen.write(event.text!);
-        scrollback.add(event.text!);
-        onUpdate?.call();
-      }
-    });
+
+    await engine.start(
+      (event) {
+
+        String? text;
+
+
+        if (event is String) {
+          text = event;
+        }
+        else if (event.text != null) {
+          text = event.text;
+        }
+
+
+        if (text != null && text.isNotEmpty) {
+
+          screen.writeText(
+            text,
+          );
+
+
+          scrollback.add(
+            text,
+          );
+
+
+          onUpdate?.call();
+        }
+      },
+    );
   }
 
-  void write(String input) {
-    engine.write(input);
+
+  void write(
+    String input,
+  ) {
+    if (input.isEmpty) {
+      return;
+    }
+
+    engine.write(
+      input,
+    );
   }
+
 
   void kill() {
     engine.kill();
