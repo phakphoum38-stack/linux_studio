@@ -1,36 +1,71 @@
+import 'screen_buffer.dart';
+
 class SelectionSystem {
-  int? startRow, startCol;
-  int? endRow, endCol;
+  int? startRow;
+  int? startCol;
+
+  int? endRow;
+  int? endCol;
 
   bool get active =>
-      startRow != null && endRow != null;
+      startRow != null &&
+      startCol != null &&
+      endRow != null &&
+      endCol != null;
 
-  void start(int r, int c) {
-    startRow = r;
-    startCol = c;
-    endRow = r;
-    endCol = c;
+  void start(int row, int col) {
+    startRow = row;
+    startCol = col;
+
+    endRow = row;
+    endCol = col;
   }
 
-  void update(int r, int c) {
-    endRow = r;
-    endCol = c;
+  void update(int row, int col) {
+    endRow = row;
+    endCol = col;
   }
 
   void clear() {
-    startRow = startCol = endRow = endCol = null;
+    startRow = null;
+    startCol = null;
+    endRow = null;
+    endCol = null;
   }
 
   String extract(ScreenBuffer buffer) {
-    if (!active) return '';
+    if (!active) {
+      return '';
+    }
+
+    final topRow = startRow! <= endRow! ? startRow! : endRow!;
+    final bottomRow = startRow! <= endRow! ? endRow! : startRow!;
 
     final sb = StringBuffer();
 
-    for (int r = startRow!; r <= endRow!; r++) {
-      for (int c = startCol!; c <= endCol!; c++) {
-        sb.write(buffer.buffer[r][c].char);
+    for (int row = topRow; row <= bottomRow; row++) {
+      int left = 0;
+      int right = buffer.cols - 1;
+
+      if (row == startRow && row == endRow) {
+        left = startCol! < endCol! ? startCol! : endCol!;
+        right = startCol! > endCol! ? startCol! : endCol!;
+      } else if (row == startRow) {
+        left = startCol!;
+      } else if (row == endRow) {
+        right = endCol!;
       }
-      sb.writeln();
+
+      left = left.clamp(0, buffer.cols - 1);
+      right = right.clamp(0, buffer.cols - 1);
+
+      for (int col = left; col <= right; col++) {
+        sb.write(buffer.buffer[row][col].char);
+      }
+
+      if (row != bottomRow) {
+        sb.writeln();
+      }
     }
 
     return sb.toString();
