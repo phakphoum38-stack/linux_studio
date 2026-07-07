@@ -6,14 +6,19 @@ import '../core/engine/ssh_bridge.dart';
 import '../ui/terminal_view.dart';
 
 class TerminalScreen extends StatefulWidget {
-  const TerminalScreen({super.key});
+  const TerminalScreen({
+    super.key,
+  });
 
   @override
-  State<TerminalScreen> createState() => _TerminalScreenState();
+  State<TerminalScreen> createState() =>
+      _TerminalScreenState();
 }
 
-class _TerminalScreenState extends State<TerminalScreen> {
-  final TextEditingController controller = TextEditingController();
+class _TerminalScreenState
+    extends State<TerminalScreen> {
+  final TextEditingController controller =
+      TextEditingController();
 
   late final ScreenBuffer buffer;
   late final SshBridge ssh;
@@ -46,17 +51,22 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   Future<void> connect() async {
     await ssh.connect(
-      host: "192.168.1.10",
-      username: "root",
-      password: "1234",
+      host: '192.168.1.10',
+      username: 'root',
+      password: '1234',
       port: 22,
     );
   }
 
-  void runCommand(String cmd) {
-    if (cmd.trim().isEmpty) return;
+  void runCommand(
+    String command,
+  ) {
+    if (command.trim().isEmpty) {
+      return;
+    }
 
-    bridge.write(cmd);
+    bridge.write(command);
+
     controller.clear();
   }
 
@@ -64,18 +74,22 @@ class _TerminalScreenState extends State<TerminalScreen> {
   void dispose() {
     bridge.kill();
     controller.dispose();
+
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Column(
       children: [
         Expanded(
           child: TerminalView(
-            screen: buffer,
+            buffer: buffer,
           ),
         ),
+
         Row(
           children: [
             Expanded(
@@ -83,14 +97,19 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 controller: controller,
                 onSubmitted: runCommand,
                 decoration: const InputDecoration(
-                  hintText: "Command...",
+                  hintText: 'Command...',
                 ),
               ),
             ),
+
             IconButton(
-              icon: const Icon(Icons.send),
+              icon: const Icon(
+                Icons.send,
+              ),
               onPressed: () {
-                runCommand(controller.text);
+                runCommand(
+                  controller.text,
+                );
               },
             ),
           ],
