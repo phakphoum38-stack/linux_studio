@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
+
+import '../core/backend/backend_factory.dart';
+
+import '../core/controller/terminal_controller.dart';
+
 import '../core/engine/screen_buffer.dart';
-import '../core/engine/terminal_engine.dart';
-import '../core/engine/terminal_controller.dart';
+
 import '../ui/terminal_view.dart';
 
 
 
 class TerminalScreen extends StatefulWidget {
+
 
   const TerminalScreen({
     super.key,
@@ -16,10 +21,11 @@ class TerminalScreen extends StatefulWidget {
 
 
   @override
-  State<TerminalScreen> createState() =>
-      _TerminalScreenState();
+  State<TerminalScreen> createState()
+      => _TerminalScreenState();
 
 }
+
 
 
 
@@ -28,190 +34,191 @@ class _TerminalScreenState
     extends State<TerminalScreen> {
 
 
+late ScreenBuffer buffer;
 
-  late ScreenBuffer buffer;
 
-  late TerminalEngine engine;
-
-  late TerminalController terminal;
+late TerminalController terminal;
 
 
 
-  final TextEditingController input =
-      TextEditingController();
+final TextEditingController input =
+    TextEditingController();
 
 
 
 
 
-  @override
-  void initState() {
-
-    super.initState();
 
 
+@override
+void initState(){
 
-    buffer = ScreenBuffer(
-      rows: 24,
-      cols: 80,
+
+super.initState();
+
+
+
+buffer =
+    ScreenBuffer(
+      rows:24,
+      cols:80,
     );
 
 
 
-    engine = TerminalEngine(
-      buffer: buffer,
+
+
+final backend =
+    BackendFactory.create(
+      mode:
+        TerminalMode.local,
     );
 
 
 
-    terminal = TerminalController(
-      engine: engine,
+
+
+terminal =
+    TerminalController(
+
+      buffer:buffer,
+
+      backend:backend,
+
     );
 
 
 
-    terminal.start(
-      buffer,
-      () {
 
-        if(mounted){
 
-          setState(() {});
+terminal.onUpdate =
+    (){
 
-        }
+      if(mounted){
 
-      },
-    );
+        setState((){});
 
-  }
+      }
 
+    };
 
 
 
 
 
+terminal.start();
 
-  void send(
-    String text,
-  ){
 
-    if(text.isEmpty){
-      return;
-    }
 
+}
 
 
-    terminal.send(
-      text,
-    );
 
 
 
-    terminal.sendKey(
-      "ENTER",
-    );
 
 
 
-    input.clear();
 
-  }
+void send(
+ String text,
+){
 
 
+terminal.write(
+ "$text\n",
+);
 
 
+input.clear();
 
 
+}
 
 
-  @override
-  void dispose(){
 
-    terminal.stop();
 
-    input.dispose();
 
-    super.dispose();
 
-  }
 
 
+@override
+void dispose(){
 
 
+terminal.stop();
 
 
+input.dispose();
 
-  @override
-  Widget build(
-    BuildContext context,
-  ){
 
+super.dispose();
 
-    return Column(
 
-      children: [
+}
 
 
 
-        Expanded(
 
-          child: TerminalView(
-            buffer: buffer,
-          ),
 
-        ),
 
 
 
 
+@override
+Widget build(
+ BuildContext context,
+){
 
 
-        Container(
+return Column(
 
-          color: Colors.black,
+children:[
 
-          child: TextField(
 
-            controller: input,
 
+Expanded(
 
-            autofocus: true,
+child:
 
+TerminalView(
+ buffer:buffer,
+),
 
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: "monospace",
-            ),
+),
 
 
 
-            decoration:
-                const InputDecoration(
 
-                  hintText:
-                    "Terminal input",
 
-                  hintStyle:
-                    TextStyle(
-                      color: Colors.grey,
-                    ),
+TextField(
 
-                ),
+controller:input,
 
 
+onSubmitted:send,
 
 
-            onSubmitted: send,
+decoration:
+const InputDecoration(
 
-          ),
+hintText:
+"Command",
 
-        ),
+),
 
 
-      ],
+),
 
-    );
 
-  }
+],
+
+
+);
+
+
+}
+
+
 
 }
