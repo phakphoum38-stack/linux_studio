@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/engine/screen_buffer.dart';
-import '../core/engine/ssh_bridge.dart';
-import '../core/engine/pty_bridge.dart';
+import '../core/engine/terminal_engine.dart';
+import '../core/engine/terminal_controller.dart';
 import '../ui/terminal_view.dart';
 
 
@@ -18,6 +18,7 @@ class TerminalScreen extends StatefulWidget {
   @override
   State<TerminalScreen> createState() =>
       _TerminalScreenState();
+
 }
 
 
@@ -30,14 +31,16 @@ class _TerminalScreenState
 
   late ScreenBuffer buffer;
 
-  late SshBridge ssh;
+  late TerminalEngine engine;
 
-  late PtyBridge bridge;
+  late TerminalController terminal;
 
 
 
-  final TextEditingController controller =
+  final TextEditingController input =
       TextEditingController();
+
+
 
 
 
@@ -48,65 +51,92 @@ class _TerminalScreenState
 
 
 
-    buffer =
-        ScreenBuffer(
-          rows: 24,
-          cols: 80,
-        );
+    buffer = ScreenBuffer(
+      rows: 24,
+      cols: 80,
+    );
 
 
 
-    ssh =
-        SshBridge();
+    engine = TerminalEngine(
+      buffer: buffer,
+    );
 
 
 
-    bridge =
-        PtyBridge(
-          ssh: ssh,
-          buffer: buffer,
-        );
+    terminal = TerminalController(
+      engine: engine,
+    );
 
 
 
-    bridge.onRefresh =
-        () {
+    terminal.start(
+      buffer,
+      () {
 
-      if (mounted) {
+        if(mounted){
 
-        setState(() {});
-      }
-    };
+          setState(() {});
 
+        }
 
+      },
+    );
 
-    bridge.start();
   }
+
+
+
 
 
 
 
   void send(
     String text,
-  ) {
+  ){
 
-    bridge.write(text);
+    if(text.isEmpty){
+      return;
+    }
 
-    controller.clear();
+
+
+    terminal.send(
+      text,
+    );
+
+
+
+    terminal.sendKey(
+      "ENTER",
+    );
+
+
+
+    input.clear();
+
   }
+
+
+
+
 
 
 
 
   @override
-  void dispose() {
+  void dispose(){
 
-    bridge.kill();
+    terminal.stop();
 
-    controller.dispose();
+    input.dispose();
 
     super.dispose();
+
   }
+
+
+
 
 
 
@@ -114,7 +144,7 @@ class _TerminalScreenState
   @override
   Widget build(
     BuildContext context,
-  ) {
+  ){
 
 
     return Column(
@@ -122,35 +152,66 @@ class _TerminalScreenState
       children: [
 
 
+
         Expanded(
 
           child: TerminalView(
             buffer: buffer,
           ),
+
         ),
 
 
 
-        TextField(
-
-          controller: controller,
 
 
-          onSubmitted: send,
+
+        Container(
+
+          color: Colors.black,
+
+          child: TextField(
+
+            controller: input,
 
 
-          style: const TextStyle(
-            color: Colors.white,
+            autofocus: true,
+
+
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: "monospace",
+            ),
+
+
+
+            decoration:
+                const InputDecoration(
+
+                  hintText:
+                    "Terminal input",
+
+                  hintStyle:
+                    TextStyle(
+                      color: Colors.grey,
+                    ),
+
+                ),
+
+
+
+
+            onSubmitted: send,
+
           ),
 
-
-          decoration:
-              const InputDecoration(
-                hintText:
-                    "Command",
-              ),
         ),
+
+
       ],
+
     );
+
   }
+
 }
