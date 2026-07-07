@@ -1,29 +1,95 @@
+import 'dart:async';
+
+
 class CursorPosition {
-  int row;
-  int col;
 
-  CursorPosition({
-    this.row = 0,
-    this.col = 0,
-  });
+  int row = 0;
+  int col = 0;
 
-  CursorPosition copy() {
-    return CursorPosition(
-      row: row,
-      col: col,
-    );
-  }
 
-  void set(
-    int newRow,
-    int newCol,
-  ) {
-    row = newRow;
-    col = newCol;
-  }
+  bool visible = true;
 
-  void reset() {
+
+  bool blinking = false;
+
+
+  Timer? _timer;
+
+
+
+  void reset(){
+
     row = 0;
     col = 0;
+
   }
+
+
+
+
+
+  void startBlink(
+    Function refresh,
+  ){
+
+    if(blinking)
+      return;
+
+
+    blinking = true;
+
+
+    _timer =
+        Timer.periodic(
+          const Duration(
+            milliseconds: 500,
+          ),
+          (_) {
+
+            visible = !visible;
+
+            refresh();
+
+          },
+        );
+
+  }
+
+
+
+
+
+
+
+  void stopBlink(){
+
+    _timer?.cancel();
+
+    _timer = null;
+
+    blinking = false;
+
+    visible = true;
+
+  }
+
+
+
+
+
+
+
+  void move(
+    int r,
+    int c,
+  ){
+
+    row=r;
+    col=c;
+
+
+    visible=true;
+
+  }
+
 }
