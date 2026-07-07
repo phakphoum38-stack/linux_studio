@@ -1,14 +1,15 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
-project(conpty_backend)
+project(terminal_native)
 
 add_library(
-    conpty
+    terminal_native
     SHARED
-    conpty.cpp
+    pty.c
 )
 
-target_link_libraries(
-    conpty
-    user32
+target_compile_features(
+    terminal_native
+    PRIVATE
+    c_std_11
 )
