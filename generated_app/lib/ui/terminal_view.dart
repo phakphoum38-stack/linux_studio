@@ -4,22 +4,33 @@ import '../core/engine/screen_buffer.dart';
 import '../core/render/terminal_painter.dart';
 
 
+
 class TerminalView extends StatefulWidget {
+
 
   final ScreenBuffer buffer;
 
 
+
   const TerminalView({
+
     super.key,
+
     required this.buffer,
+
   });
 
 
 
+
   @override
-  State<TerminalView> createState() =>
-      _TerminalViewState();
+  State<TerminalView> createState()
+      => _TerminalViewState();
+
 }
+
+
+
 
 
 
@@ -29,23 +40,80 @@ class _TerminalViewState
 
 
   @override
+  void initState(){
+
+    super.initState();
+
+
+
+    widget.buffer.cursor.startBlink(
+
+      (){
+
+        if(mounted){
+
+          setState((){});
+
+        }
+
+      },
+
+    );
+
+  }
+
+
+
+
+
+
+
+  @override
+  void dispose(){
+
+    widget.buffer.cursor.stopBlink();
+
+
+    super.dispose();
+
+  }
+
+
+
+
+
+
+
+  @override
   Widget build(
     BuildContext context,
-  ) {
+  ){
 
-    return Container(
+    return CustomPaint(
 
-      color: Colors.black,
+      painter:
 
-      child: CustomPaint(
+        TerminalPainter(
 
-        painter: TerminalPainter(
-          widget.buffer,
+          buffer:
+              widget.buffer,
+
+          cursorVisible:
+
+              widget.buffer
+              .cursor
+              .visible,
+
         ),
 
 
-        child: SizedBox.expand(),
-      ),
+      child:
+
+        Container(),
+
     );
+
   }
+
+
 }
