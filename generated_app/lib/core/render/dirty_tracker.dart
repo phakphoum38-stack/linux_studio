@@ -1,57 +1,64 @@
 class DirtyTracker {
-  final Set<String> _dirtyCells = {};
 
-  /// Current dirty cells
-  Set<String> get dirtyCells =>
-      Set.unmodifiable(_dirtyCells);
+  final Set<String> _cells = {};
 
-  /// Mark one cell dirty
+
+  Set<String> get dirtyCells => _cells;
+
+
+
   void mark(
     int row,
     int col,
   ) {
-    _dirtyCells.add('$row:$col');
-  }
-
-  /// Mark entire row dirty
-  void markRow(
-    int row, {
-    int cols = 80,
-  }) {
-    for (int col = 0; col < cols; col++) {
-      mark(row, col);
-    }
-  }
-
-  /// Mark whole terminal dirty
-  void markAll({
-    int rows = 24,
-    int cols = 80,
-  }) {
-    for (int row = 0; row < rows; row++) {
-      markRow(
-        row,
-        cols: cols,
-      );
-    }
-  }
-
-  /// Remove all dirty state
-  void clear() {
-    _dirtyCells.clear();
-  }
-
-  /// Check cell state
-  bool isDirty(
-    int row,
-    int col,
-  ) {
-    return _dirtyCells.contains(
+    _cells.add(
       '$row:$col',
     );
   }
 
-  /// Number of dirty cells
-  int get count =>
-      _dirtyCells.length;
+
+
+  void markRow(
+    int row,
+    int cols,
+  ) {
+
+    for (int c = 0; c < cols; c++) {
+      mark(row, c);
+    }
+  }
+
+
+
+  void markAll(
+    int rows,
+    int cols,
+  ) {
+
+    for (int r = 0; r < rows; r++) {
+
+      for (int c = 0; c < cols; c++) {
+
+        mark(r, c);
+      }
+    }
+  }
+
+
+
+  bool isDirty(
+    int row,
+    int col,
+  ) {
+
+    return _cells.contains(
+      '$row:$col',
+    );
+  }
+
+
+
+  void clear() {
+    _cells.clear();
+  }
 }
