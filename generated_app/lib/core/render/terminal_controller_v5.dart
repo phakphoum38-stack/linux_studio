@@ -1,12 +1,6 @@
 import '../engine/screen_buffer.dart';
 import 'render_pipeline.dart';
 
-/// Release 1.0 Safe Controller Stub
-///
-/// เป้าหมาย:
-/// - ให้ compile ผ่าน
-/// - แทน DirtyTracker / Cursor system ที่ยังไม่ครบ
-/// - เตรียม upgrade เป็น full VT engine ใน Phase 2
 class TerminalControllerV5 {
   final ScreenBuffer screen;
   final RenderPipeline pipeline;
@@ -19,56 +13,63 @@ class TerminalControllerV5 {
     required this.pipeline,
   });
 
-  /// Write character stream
   void write(String data) {
-    for (final char in data.split('')) {
-      _putChar(char);
+    for (final ch in data.characters) {
+      _putChar(ch);
     }
 
     pipeline.invalidateAll();
   }
 
-  void _putChar(String char) {
-    if (char == '\n') {
-      cursorRow++;
-      cursorCol = 0;
+  void _putChar(String ch) {
+    switch (ch) {
+      case '\n':
+        cursorRow++;
+        cursorCol = 0;
+        return;
+
+      case '\r':
+        cursorCol = 0;
+        return;
+    }
+
+    if (!screen.inBounds(cursorRow, cursorCol)) {
       return;
     }
 
-    if (char == '\r') {
-      cursorCol = 0;
-      return;
-    }
+    screen.buffer[cursorRow][cursorCol].char = ch;
 
-    if (cursorRow >= screen.height || cursorCol >= screen.width) {
-      return;
-    }
-
-    screen.buffer[cursorRow][cursorCol].char = char;
     pipeline.invalidateRow(cursorRow);
 
     cursorCol++;
-    if (cursorCol >= screen.width) {
+
+    if (cursorCol >= screen.cols) {
       cursorCol = 0;
       cursorRow++;
+
+      if (cursorRow >= screen.rows) {
+        cursorRow = screen.rows - 1;
+      }
     }
   }
 
-  /// Move cursor
-  void moveCursor(int row, int col) {
-    cursorRow = row.clamp(0, screen.height - 1);
-    cursorCol = col.clamp(0, screen.width - 1);
+  void moveCursor(
+    int row,
+    int col,
+  ) {
+    cursorRow = row.clamp(0, screen.rows - 1);
+    cursorCol = col.clamp(0, screen.cols - 1);
   }
 
-  /// Clear screen
   void clear() {
     screen.clear();
-    pipeline.invalidateAll();
+
     cursorRow = 0;
     cursorCol = 0;
+
+    pipeline.invalidateAll();
   }
 
-  /// Reset state
   void reset() {
     clear();
   }
