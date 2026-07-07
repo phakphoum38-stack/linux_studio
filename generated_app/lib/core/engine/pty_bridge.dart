@@ -1,6 +1,7 @@
 import 'screen_buffer.dart';
 import 'ssh_bridge.dart';
-
+import 'ansi_parser.dart';
+import 'vt100_state_machine.dart';
 
 
 typedef VoidCallback = void Function();
@@ -14,6 +15,15 @@ class PtyBridge {
 
 
   final SshBridge ssh;
+
+
+
+  final VT100StateMachine vt100 =
+      VT100StateMachine();
+
+
+
+  late final AnsiParser parser;
 
 
 
@@ -32,7 +42,13 @@ class PtyBridge {
 
     required this.ssh,
 
-  });
+  }) {
+
+    parser = AnsiParser(
+      vt100,
+    );
+
+  }
 
 
 
@@ -49,9 +65,20 @@ class PtyBridge {
         (data) {
 
 
-      buffer.writeText(
+      if (!running) {
+        return;
+      }
+
+
+
+      // ANSI Output
+      // SSH -> Parser -> ScreenBuffer
+
+      parser.parse(
         data,
+        buffer,
       );
+
 
 
       onRefresh?.call();
@@ -60,13 +87,17 @@ class PtyBridge {
 
 
 
+
+
     ssh.onError =
         (error) {
 
 
-      buffer.writeText(
+      parser.parse(
         "\nERROR: $error\n",
+        buffer,
       );
+
 
 
       onRefresh?.call();
@@ -79,13 +110,14 @@ class PtyBridge {
 
 
 
+
+
   void write(
     String text,
   ) {
 
 
     if (!running) {
-
       return;
     }
 
@@ -102,16 +134,21 @@ class PtyBridge {
     } else {
 
 
-      // local terminal fallback
+      // Local mode
 
-      buffer.writeText(
+      parser.parse(
         "$text\n",
+        buffer,
       );
 
 
       onRefresh?.call();
+
     }
+
   }
+
+
 
 
 
@@ -142,7 +179,10 @@ class PtyBridge {
       port: port,
 
     );
+
   }
+
+
 
 
 
@@ -150,15 +190,22 @@ class PtyBridge {
 
 
   void resize(
+
     int cols,
+
     int rows,
+
   ) {
+
 
     ssh.resize(
       cols,
       rows,
     );
+
   }
+
+
 
 
 
@@ -172,5 +219,7 @@ class PtyBridge {
 
 
     await ssh.disconnect();
+
   }
+
 }
