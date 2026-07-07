@@ -1,161 +1,345 @@
 import 'screen_buffer.dart';
+import 'terminal_event.dart';
 
 
 class VT100StateMachine {
 
-  int cursorRow = 0;
 
-  int cursorCol = 0;
-
-
-  int fg = 37;
-
-  int bg = 40;
+  int row = 0;
+  int col = 0;
 
 
+  int foreground = 37;
+  int background = 40;
 
-  void process(
-    String command,
-    List<int> args,
+
+  bool bold = false;
+  bool underline = false;
+  bool inverse = false;
+
+
+
+  bool cursorVisible = true;
+
+
+
+  void apply(
+    TerminalEvent event,
     ScreenBuffer buffer,
   ) {
 
 
-    switch(command) {
+    switch(event.type) {
 
 
-      case 'A': // CUU
+      case TerminalEventType.text:
 
-        cursorRow -=
-            args.isEmpty ? 1 : args[0];
+        final e = event as TextEvent;
 
-        break;
+        buffer.moveCursor(
+          row,
+          col,
+        );
 
+        buffer.setAttributes(
+          foreground,
+          background,
+          bold,
+          underline,
+          inverse,
+        );
 
-
-      case 'B': // CUD
-
-        cursorRow +=
-            args.isEmpty ? 1 : args[0];
-
-        break;
-
-
-
-      case 'C': // CUF
-
-        cursorCol +=
-            args.isEmpty ? 1 : args[0];
-
-        break;
+        buffer.writeText(
+          e.text,
+        );
 
 
-
-      case 'D': // CUB
-
-        cursorCol -=
-            args.isEmpty ? 1 : args[0];
+        _syncCursor(buffer);
 
         break;
 
 
 
-      case 'H':
-      case 'f':
-
-        cursorRow =
-            (args.isNotEmpty
-                ? args[0]
-                : 1) - 1;
 
 
-        cursorCol =
-            (args.length > 1
-                ? args[1]
-                : 1) - 1;
+      case TerminalEventType.cursorMove:
+
+
+        final e =
+            event as CursorMoveEvent;
+
+
+        row += e.row;
+        col += e.col;
+
+
+        _clamp(
+          buffer,
+        );
+
 
         break;
 
 
 
-      case 'J':
 
-        buffer.clear();
+
+
+      case TerminalEventType.cursorPosition:
+
+
+        final e =
+            event as CursorPositionEvent;
+
+
+        row=e.row;
+        col=e.col;
+
+
+        _clamp(
+          buffer,
+        );
+
 
         break;
 
 
 
-      case 'm':
 
-        _setColor(args);
+
+
+      case TerminalEventType.setColor:
+
+
+        final e =
+            event as SetColorEvent;
+
+
+        foreground =
+            e.foreground;
+
+
+        background =
+            e.background;
+
 
         break;
+
+
+
+
+
+
+      case TerminalEventType.eraseDisplay:
+
+
+        final e =
+            event as EraseDisplayEvent;
+
+
+        _eraseDisplay(
+          e.mode,
+          buffer,
+        );
+
+
+        break;
+
+
+
+
+
+
+      case TerminalEventType.eraseLine:
+
+
+        final e =
+            event as EraseLineEvent;
+
+
+        _eraseLine(
+          e.mode,
+          buffer,
+        );
+
+
+        break;
+
+
+
+
+
+
+      case TerminalEventType.scroll:
+
+
+        final e =
+            event as ScrollEvent;
+
+
+        buffer.scrollUp(
+          e.amount,
+        );
+
+
+        break;
+
+
+
+
+
+
+      case TerminalEventType.bell:
+
+        break;
+
+
+
+      case TerminalEventType.setAttribute:
+
+
+        final e =
+            event as AttributeEvent;
+
+
+        bold =
+            e.bold;
+
+        underline =
+            e.underline;
+
+        inverse =
+            e.inverse;
+
+
+        break;
+
+
+
+
+      case TerminalEventType.resize:
+
+        break;
+
     }
 
-
-
-    _clamp(
-      buffer,
-    );
   }
 
 
 
 
-  void _setColor(
-    List<int> args,
-  ) {
-
-
-    if(args.isEmpty) {
-
-      fg = 37;
-
-      bg = 40;
-
-      return;
-    }
 
 
 
-    for(final a in args) {
 
 
-      if(a >=30 &&
-         a <=37) {
+  void _syncCursor(
+    ScreenBuffer buffer,
+  ){
 
-        fg = a;
-      }
+    row =
+        buffer.cursor.row;
 
 
+    col =
+        buffer.cursor.col;
 
-      if(a >=40 &&
-         a <=47) {
-
-        bg = a;
-      }
-    }
   }
+
+
+
+
+
 
 
 
 
   void _clamp(
     ScreenBuffer buffer,
-  ) {
+  ){
 
-    cursorRow =
-        cursorRow.clamp(
-          0,
-          buffer.rows-1,
-        );
+    if(row < 0)
+      row = 0;
 
 
-    cursorCol =
-        cursorCol.clamp(
-          0,
-          buffer.cols-1,
-        );
+    if(col < 0)
+      col = 0;
+
+
+
+    if(row >= buffer.rows)
+      row = buffer.rows-1;
+
+
+    if(col >= buffer.cols)
+      col = buffer.cols-1;
+
   }
+
+
+
+
+
+
+
+
+
+  void _eraseDisplay(
+    int mode,
+    ScreenBuffer buffer,
+  ){
+
+    switch(mode){
+
+
+      case 2:
+
+        buffer.clear();
+
+        break;
+
+
+      default:
+
+        break;
+
+    }
+
+  }
+
+
+
+
+
+
+
+
+
+  void _eraseLine(
+    int mode,
+    ScreenBuffer buffer,
+  ){
+
+    buffer.clearLine(
+      row,
+    );
+
+  }
+
+
+
+  void reset(){
+
+    row=0;
+    col=0;
+
+    foreground=37;
+    background=40;
+
+    bold=false;
+    underline=false;
+    inverse=false;
+
+  }
+
 }
