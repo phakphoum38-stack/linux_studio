@@ -3,229 +3,118 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
-
-
-
-
-typedef TerminalCreateNative = Pointer<Void> Function(
+typedef _CreateNative = Pointer<Void> Function(
   Int32 rows,
   Int32 cols,
 );
 
-
-typedef TerminalCreate =
-    Pointer<Void> Function(
-      int rows,
-      int cols,
-    );
-
-
-
-
-
-
-
-
-typedef TerminalWriteNative = Int32 Function(
-  Pointer<Void> handle,
-  Pointer<Utf8> data,
-  Int32 length,
+typedef _Create = Pointer<Void> Function(
+  int rows,
+  int cols,
 );
 
-
-typedef TerminalWrite =
-    int Function(
-      Pointer<Void> handle,
-      Pointer<Utf8> data,
-      int length,
-    );
-
-
-
-
-
-
-
-
-typedef TerminalReadNative = Int32 Function(
-  Pointer<Void> handle,
-  Pointer<Uint8> buffer,
-  Int32 size,
+typedef _WriteNative = Uint8 Function(
+  Pointer<Void>,
+  Pointer<Utf8>,
+  Int32,
 );
 
-
-typedef TerminalRead =
-    int Function(
-      Pointer<Void> handle,
-      Pointer<Uint8> buffer,
-      int size,
-    );
-
-
-
-
-
-
-
-
-typedef TerminalResizeNative = Int32 Function(
-  Pointer<Void> handle,
-  Int32 rows,
-  Int32 cols,
+typedef _Write = int Function(
+  Pointer<Void>,
+  Pointer<Utf8>,
+  int,
 );
 
-
-typedef TerminalResize =
-    int Function(
-      Pointer<Void> handle,
-      int rows,
-      int cols,
-    );
-
-
-
-
-
-
-
-
-typedef TerminalCloseNative = Void Function(
-  Pointer<Void> handle,
+typedef _ReadNative = Int32 Function(
+  Pointer<Void>,
+  Pointer<Utf8>,
+  Int32,
 );
 
+typedef _Read = int Function(
+  Pointer<Void>,
+  Pointer<Utf8>,
+  int,
+);
 
-typedef TerminalClose =
-    void Function(
-      Pointer<Void> handle,
-    );
+typedef _ResizeNative = Uint8 Function(
+  Pointer<Void>,
+  Int32,
+  Int32,
+);
 
+typedef _Resize = int Function(
+  Pointer<Void>,
+  int,
+  int,
+);
 
+typedef _CloseNative = Void Function(
+  Pointer<Void>,
+);
 
-
-
-
-
-
+typedef _Close = void Function(
+  Pointer<Void>,
+);
 
 class TerminalFFI {
+  TerminalFFI._() {
+    _load();
+  }
 
-
+  static final TerminalFFI instance = TerminalFFI._();
 
   late final DynamicLibrary library;
 
+  late final _Create create;
 
+  late final _Write write;
 
-  late final TerminalCreate create;
+  late final _Read read;
 
-  late final TerminalWrite write;
+  late final _Resize resize;
 
-  late final TerminalRead read;
+  late final _Close close;
 
-  late final TerminalResize resize;
-
-  late final TerminalClose close;
-
-
-
-
-
-
-
-  TerminalFFI(){
-
-
-
-    if(!Platform.isWindows){
-
+  void _load() {
+    if (!Platform.isWindows) {
       throw UnsupportedError(
-        'ConPTY requires Windows',
+        'ConPTY backend is only supported on Windows.',
       );
-
     }
 
+    library = DynamicLibrary.open(
+      'terminal_api.dll',
+    );
 
+    create = library.lookupFunction<
+        _CreateNative,
+        _Create>(
+      'terminal_create',
+    );
 
+    write = library.lookupFunction<
+        _WriteNative,
+        _Write>(
+      'terminal_write',
+    );
 
+    read = library.lookupFunction<
+        _ReadNative,
+        _Read>(
+      'terminal_read',
+    );
 
-    library =
-        DynamicLibrary.open(
-          'terminal_api.dll',
-        );
+    resize = library.lookupFunction<
+        _ResizeNative,
+        _Resize>(
+      'terminal_resize',
+    );
 
-
-
-
-
-
-
-    create =
-        library.lookupFunction<
-          TerminalCreateNative,
-          TerminalCreate
-        >(
-          'terminal_create',
-        );
-
-
-
-
-
-
-
-    write =
-        library.lookupFunction<
-          TerminalWriteNative,
-          TerminalWrite
-        >(
-          'terminal_write',
-        );
-
-
-
-
-
-
-
-    read =
-        library.lookupFunction<
-          TerminalReadNative,
-          TerminalRead
-        >(
-          'terminal_read',
-        );
-
-
-
-
-
-
-
-    resize =
-        library.lookupFunction<
-          TerminalResizeNative,
-          TerminalResize
-        >(
-          'terminal_resize',
-        );
-
-
-
-
-
-
-
-    close =
-        library.lookupFunction<
-          TerminalCloseNative,
-          TerminalClose
-        >(
-          'terminal_close',
-        );
-
-
-
+    close = library.lookupFunction<
+        _CloseNative,
+        _Close>(
+      'terminal_close',
+    );
   }
-
-
-
 }
