@@ -20,6 +20,8 @@ enum TerminalMode {
 
 
 
+
+
 class BackendFactory {
 
 
@@ -39,6 +41,7 @@ class BackendFactory {
       case TerminalMode.local:
 
         return _createLocal();
+
 
 
 
@@ -78,6 +81,7 @@ class BackendFactory {
 
 
 
+
     if(
       Platform.isWindows
     ){
@@ -94,7 +98,7 @@ class BackendFactory {
 
     throw UnsupportedError(
 
-      "Local terminal is not supported on this platform"
+      'Local terminal is not supported on this platform'
 
     );
 
@@ -113,6 +117,61 @@ class BackendFactory {
 
 
     return SshTerminalBackend();
+
+
+  }
+
+
+
+
+
+
+
+  static bool get supportsLocal{
+
+
+    return
+        Platform.isLinux ||
+        Platform.isMacOS ||
+        Platform.isWindows;
+
+
+  }
+
+
+
+
+
+
+
+  static String get platformName{
+
+
+    if(Platform.isWindows){
+
+      return 'Windows ConPTY';
+
+    }
+
+
+
+    if(Platform.isLinux){
+
+      return 'Linux PTY';
+
+    }
+
+
+
+    if(Platform.isMacOS){
+
+      return 'macOS PTY';
+
+    }
+
+
+
+    return 'Unknown';
 
 
   }
