@@ -1,36 +1,28 @@
 #pragma once
 
 #ifdef _WIN32
-
-#include <windows.h>
-
-
-#ifdef TERMINAL_EXPORTS
 #define TERMINAL_API __declspec(dllexport)
 #else
-#define TERMINAL_API __declspec(dllimport)
+#define TERMINAL_API
+#endif
+
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 
 
-extern "C"
-{
-
-
-// Create terminal session
-
-TERMINAL_API void*
-terminal_create(
+// Create ConPTY session
+TERMINAL_API void* terminal_create(
     int rows,
     int cols
 );
 
 
 
-// Write keyboard input
-
-TERMINAL_API bool
-terminal_write(
+// Write input to terminal
+TERMINAL_API int terminal_write(
     void* handle,
     const char* data,
     int length
@@ -39,20 +31,16 @@ terminal_write(
 
 
 // Read terminal output
-
-TERMINAL_API int
-terminal_read(
+TERMINAL_API int terminal_read(
     void* handle,
-    char* buffer,
+    unsigned char* buffer,
     int size
 );
 
 
 
 // Resize terminal
-
-TERMINAL_API bool
-terminal_resize(
+TERMINAL_API int terminal_resize(
     void* handle,
     int rows,
     int cols
@@ -61,14 +49,12 @@ terminal_resize(
 
 
 // Close terminal
-
-TERMINAL_API void
-terminal_close(
+TERMINAL_API void terminal_close(
     void* handle
 );
 
 
+
+#ifdef __cplusplus
 }
-
-
 #endif
