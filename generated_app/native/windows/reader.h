@@ -3,50 +3,60 @@
 #ifdef _WIN32
 
 #include <windows.h>
-#include <thread>
-#include <atomic>
-#include <functional>
 
 #include "pipe.h"
 
 
-class ReaderThread {
+class Reader {
+
 
 private:
 
-    PipeManager* pipe;
+
+    PipeManager* pipe = nullptr;
 
 
-    std::thread worker;
-
-
-    std::atomic<bool> running;
-
-
-    std::function<void(
-        const char*,
-        int
-    )> callback;
-
-
-
-    void loop();
+    bool running = false;
 
 
 
 public:
 
 
-    ReaderThread();
+    Reader();
 
 
-    ~ReaderThread();
+    ~Reader();
 
 
 
-    bool start(
+
+
+    void attach(
+
         PipeManager* manager
+
     );
+
+
+
+
+
+    int read(
+
+        char* buffer,
+
+        int size
+
+    );
+
+
+
+
+
+    bool isRunning() const;
+
+
 
 
 
@@ -54,14 +64,6 @@ public:
 
 
 
-    void setCallback(
-        std::function<void(
-            const char*,
-            int
-        )> cb
-    );
-
 };
-
 
 #endif
