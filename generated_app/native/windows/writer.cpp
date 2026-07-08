@@ -1,27 +1,30 @@
 #include "writer.h"
 
 
+
 #ifdef _WIN32
 
 
 
-WriterThread::WriterThread()
+Writer::Writer()
 
 {
 
     pipe = nullptr;
 
+    running = false;
+
 }
 
 
 
 
 
-WriterThread::~WriterThread()
+Writer::~Writer()
 
 {
 
-    close();
+    stop();
 
 }
 
@@ -31,28 +34,22 @@ WriterThread::~WriterThread()
 
 
 
-bool WriterThread::attach(
+
+
+void Writer::attach(
+
     PipeManager* manager
+
 )
 
 {
 
-    if(
-        manager == nullptr
-    )
-
-    {
-
-        return false;
-
-    }
-
-
-
     pipe = manager;
 
 
-    return true;
+    running =
+
+        pipe != nullptr;
 
 }
 
@@ -62,7 +59,9 @@ bool WriterThread::attach(
 
 
 
-bool WriterThread::write(
+
+
+bool Writer::write(
 
     const char* data,
 
@@ -74,9 +73,13 @@ bool WriterThread::write(
 
 
     if(
+
+        !running ||
+
         pipe == nullptr ||
-        data == nullptr ||
-        length <= 0
+
+        data == nullptr
+
     )
 
     {
@@ -87,16 +90,44 @@ bool WriterThread::write(
 
 
 
-    std::lock_guard<std::mutex> guard(
-        lock
+
+
+
+    DWORD written = 0;
+
+
+
+
+
+    BOOL result =
+
+        WriteFile(
+
+            pipe->getInputWrite(),
+
+            data,
+
+            length,
+
+            &written,
+
+            nullptr
+
+        );
+
+
+
+
+
+
+    return (
+
+        result &&
+
+        written == length
+
     );
 
-
-
-    return pipe->write(
-        data,
-        length
-    );
 
 
 }
@@ -107,23 +138,13 @@ bool WriterThread::write(
 
 
 
-bool WriterThread::writeString(
 
-    const std::string& text
 
-)
+bool Writer::isRunning() const
 
 {
 
-    return write(
-
-        text.c_str(),
-
-        static_cast<int>(
-            text.size()
-        )
-
-    );
+    return running;
 
 }
 
@@ -133,9 +154,13 @@ bool WriterThread::writeString(
 
 
 
-void WriterThread::close()
+
+
+void Writer::stop()
 
 {
+
+    running = false;
 
     pipe = nullptr;
 
