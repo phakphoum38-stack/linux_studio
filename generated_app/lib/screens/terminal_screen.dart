@@ -1,23 +1,15 @@
 import 'package:flutter/material.dart';
-
-
-import '../core/backend/backend_factory.dart';
+import 'package:xterm/xterm.dart';
 
 import '../core/controller/terminal_controller.dart';
-
-import '../core/engine/screen_buffer.dart';
-
-import '../ui/terminal_view.dart';
 
 
 
 class TerminalScreen extends StatefulWidget {
 
-
   const TerminalScreen({
     super.key,
   });
-
 
 
   @override
@@ -29,196 +21,113 @@ class TerminalScreen extends StatefulWidget {
 
 
 
-
 class _TerminalScreenState
     extends State<TerminalScreen> {
 
 
-late ScreenBuffer buffer;
+  late Terminal xterm;
 
-
-late TerminalController terminal;
-
-
-
-final TextEditingController input =
-    TextEditingController();
+  late TerminalController controller;
 
 
 
+  @override
+  void initState(){
+
+    super.initState();
+
+
+    xterm =
+        Terminal(
+          maxLines: 10000,
+        );
+
+
+
+    controller =
+        TerminalController();
+
+
+
+    xterm.onOutput =
+        (data){
+
+          controller.write(
+            data,
+          );
+
+        };
+
+
+
+    controller.start();
+
+
+  }
 
 
 
 
-@override
-void initState(){
-
-
-super.initState();
 
 
 
-buffer =
-    ScreenBuffer(
-      rows:24,
-      cols:80,
+  @override
+  Widget build(
+    BuildContext context,
+  ){
+
+
+    return Scaffold(
+
+      appBar:
+
+        AppBar(
+
+          title:
+
+            const Text(
+              'Linux Studio Terminal',
+            ),
+
+        ),
+
+
+
+      body:
+
+        TerminalView(
+
+          xterm,
+
+
+          autofocus: true,
+
+
+        ),
+
+
     );
 
 
+  }
 
 
 
-final backend =
-    BackendFactory.create(
-      mode:
-        TerminalMode.local,
-    );
 
 
 
 
+  @override
+  void dispose(){
 
-terminal =
-    TerminalController(
 
-      buffer:buffer,
+    controller.stop();
 
-      backend:backend,
 
-    );
+    super.dispose();
 
 
-
-
-
-terminal.onUpdate =
-    (){
-
-      if(mounted){
-
-        setState((){});
-
-      }
-
-    };
-
-
-
-
-
-terminal.start();
-
-
-
-}
-
-
-
-
-
-
-
-
-
-void send(
- String text,
-){
-
-
-terminal.write(
- "$text\n",
-);
-
-
-input.clear();
-
-
-}
-
-
-
-
-
-
-
-
-@override
-void dispose(){
-
-
-terminal.stop();
-
-
-input.dispose();
-
-
-super.dispose();
-
-
-}
-
-
-
-
-
-
-
-
-
-@override
-Widget build(
- BuildContext context,
-){
-
-
-return Column(
-
-children:[
-
-
-
-Expanded(
-
-child:
-
-TerminalView(
- buffer:buffer,
-),
-
-),
-
-
-
-
-
-TextField(
-
-controller:input,
-
-
-onSubmitted:send,
-
-
-decoration:
-const InputDecoration(
-
-hintText:
-"Command",
-
-),
-
-
-),
-
-
-],
-
-
-);
-
-
-}
-
+  }
 
 
 }
