@@ -3,31 +3,43 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <ConsoleApi3.h>
 
-#include "conpty.h"
 
+class ProcessManager {
 
-class ProcessLauncher {
 
 private:
 
-    PROCESS_INFORMATION processInfo;
 
-    ConPTY* conpty;
+    PROCESS_INFORMATION processInfo{};
+
+
+    bool running = false;
+
 
 
 public:
 
-    ProcessLauncher();
 
-    ~ProcessLauncher();
+    ProcessManager();
+
+
+    ~ProcessManager();
+
+
 
 
 
     bool start(
-        ConPTY* terminal,
-        const wchar_t* command
+
+        HPCON hpc,
+
+        const wchar_t* command = L"powershell.exe"
+
     );
+
+
 
 
 
@@ -35,11 +47,16 @@ public:
 
 
 
+
+
     DWORD getProcessId() const;
 
 
 
+
+
     void close();
+
 
 
 };
