@@ -6,4 +6,12 @@ add_library(
     conpty.cpp
     process.cpp
     reader.cpp
+    writer.cpp
+)
+
+
+target_link_libraries(
+    conpty_terminal
+
+    OneCore.lib
 )
