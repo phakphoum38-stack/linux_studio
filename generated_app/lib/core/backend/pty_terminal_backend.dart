@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'terminal_backend.dart';
+import 'native_terminal.dart';
 
 
 
@@ -9,17 +10,27 @@ class PtyTerminalBackend
 
 
 
-  Process? _process;
+  final NativeTerminal _terminal =
+      NativeTerminal();
 
 
 
-  @override
-  Function(String data)? onOutput;
+  Timer? _reader;
 
 
 
-  @override
-  Function(String error)? onError;
+  bool _running = false;
+
+
+
+  final StreamController<String> _output =
+      StreamController<String>.broadcast();
+
+
+
+  Stream<String> get output =>
+      _output.stream;
+
 
 
 
@@ -29,104 +40,70 @@ class PtyTerminalBackend
 
   @override
   Future<void> start()
+
   async {
 
 
-    try {
-
-
-      _process =
-          await Process.start(
-
-        'bash',
-
-        [
-          '-i',
-        ],
-
-
-        environment: {
-
-
-          ...Platform.environment,
-
-
-          'TERM':
-              'xterm-256color',
-
-
-          'COLORTERM':
-              'truecolor',
-
-
-        },
-
-
-      );
+    final created =
+        _terminal.create(
+          rows: 24,
+          cols: 80,
+        );
 
 
 
+    if(!created){
 
-
-
-
-      _process!
-          .stdout
-          .transform(
-            systemEncoding.decoder,
-          )
-          .listen(
-
-            (data){
-
-              onOutput?.call(
-                data,
-              );
-
-            },
-
-          );
-
-
-
-
-
-
-
-
-      _process!
-          .stderr
-          .transform(
-            systemEncoding.decoder,
-          )
-          .listen(
-
-            (data){
-
-              onOutput?.call(
-                data,
-              );
-
-            },
-
-          );
-
-
-
-
-    }
-
-    catch(e){
-
-      onError?.call(
-        e.toString(),
+      throw Exception(
+        'Failed to create ConPTY session',
       );
 
     }
+
+
+
+    _running = true;
+
+
+
+    _reader =
+        Timer.periodic(
+
+          const Duration(
+            milliseconds: 30,
+          ),
+
+          (_) {
+
+
+            if(!_running){
+
+              return;
+
+            }
+
+
+
+            final data =
+                _terminal.read();
+
+
+
+            if(data.isNotEmpty){
+
+              _output.add(
+                data,
+              );
+
+            }
+
+
+          },
+
+        );
 
 
   }
-
 
 
 
@@ -137,11 +114,13 @@ class PtyTerminalBackend
 
   @override
   void write(
+
     String data,
+
   ){
 
 
-    if(_process == null){
+    if(!_running){
 
       return;
 
@@ -149,21 +128,28 @@ class PtyTerminalBackend
 
 
 
-    _process!
-        .stdin
-        .write(
-          data,
-        );
-
-
-
-    _process!
-        .stdin
-        .flush();
+    _terminal.write(
+      data,
+    );
 
 
   }
 
+
+
+
+
+
+
+
+  @override
+  String read(){
+
+
+    return _terminal.read();
+
+
+  }
 
 
 
@@ -182,13 +168,21 @@ class PtyTerminalBackend
   ){
 
 
-    //
-    // Phase 16.8.8
-    //
-    // ioctl(TIOCSWINSZ)
-    //
-    // real PTY resize
-    //
+    if(!_running){
+
+      return;
+
+    }
+
+
+
+    _terminal.resize(
+
+      rows,
+
+      cols,
+
+    );
 
 
   }
@@ -200,17 +194,29 @@ class PtyTerminalBackend
 
 
 
-
   @override
   Future<void> stop()
+
   async {
 
 
-    _process?.kill();
+    _running = false;
 
 
 
-    _process = null;
+    _reader?.cancel();
+
+
+
+    _reader = null;
+
+
+
+    _terminal.dispose();
+
+
+
+    await _output.close();
 
 
   }
