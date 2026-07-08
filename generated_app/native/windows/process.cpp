@@ -1,25 +1,28 @@
 #include "process.h"
 
 
+
 #ifdef _WIN32
 
 
-#include <vector>
-#include <string>
+
+#include <processthreadsapi.h>
 
 
 
-ProcessLauncher::ProcessLauncher()
+
+
+ProcessManager::ProcessManager()
 
 {
 
     ZeroMemory(
+
         &processInfo,
-        sizeof(PROCESS_INFORMATION)
+
+        sizeof(processInfo)
+
     );
-
-
-    conpty = nullptr;
 
 }
 
@@ -27,7 +30,7 @@ ProcessLauncher::ProcessLauncher()
 
 
 
-ProcessLauncher::~ProcessLauncher()
+ProcessManager::~ProcessManager()
 
 {
 
@@ -42,9 +45,10 @@ ProcessLauncher::~ProcessLauncher()
 
 
 
-bool ProcessLauncher::start(
 
-    ConPTY* terminal,
+bool ProcessManager::start(
+
+    HPCON hpc,
 
     const wchar_t* command
 
@@ -53,10 +57,7 @@ bool ProcessLauncher::start(
 {
 
 
-    if(
-        terminal == nullptr ||
-        terminal->getHandle() == nullptr
-    )
+    if(hpc == nullptr)
 
     {
 
@@ -66,29 +67,26 @@ bool ProcessLauncher::start(
 
 
 
-    conpty = terminal;
+
+
+    STARTUPINFOEXW startup{};
 
 
 
-    STARTUPINFOEXW siex;
+    startup.StartupInfo.cb =
 
-
-
-    ZeroMemory(
-        &siex,
-        sizeof(STARTUPINFOEXW)
-    );
-
-
-
-    siex.StartupInfo.cb =
         sizeof(STARTUPINFOEXW);
 
 
 
 
 
-    SIZE_T size = 0;
+
+
+
+    SIZE_T attributeSize = 0;
+
+
 
 
 
@@ -100,39 +98,38 @@ bool ProcessLauncher::start(
 
         0,
 
-        &size
+        &attributeSize
 
     );
 
 
 
-    std::vector<char> buffer(size);
-
-
-
-    siex.lpAttributeList =
-        reinterpret_cast<
-            LPPROC_THREAD_ATTRIBUTE_LIST
-        >(buffer.data());
 
 
 
 
 
-    if(
-        !InitializeProcThreadAttributeList(
+    auto attributes =
 
-            siex.lpAttributeList,
+        (LPPROC_THREAD_ATTRIBUTE_LIST)
 
-            1,
+        HeapAlloc(
+
+            GetProcessHeap(),
 
             0,
 
-            &size
+            attributeSize
 
-        )
+        );
 
-    )
+
+
+
+
+
+
+    if(!attributes)
 
     {
 
@@ -145,33 +142,29 @@ bool ProcessLauncher::start(
 
 
 
-    if(
 
-        !UpdateProcThreadAttribute(
 
-            siex.lpAttributeList,
+    if(!InitializeProcThreadAttributeList(
 
-            0,
+        attributes,
 
-            PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+        1,
 
-            terminal->getHandle(),
+        0,
 
-            sizeof(HPCON),
+        &attributeSize
 
-            nullptr,
-
-            nullptr
-
-        )
-
-    )
+    ))
 
     {
 
-        DeleteProcThreadAttributeList(
+        HeapFree(
 
-            siex.lpAttributeList
+            GetProcessHeap(),
+
+            0,
+
+            attributes
 
         );
 
@@ -184,17 +177,70 @@ bool ProcessLauncher::start(
 
 
 
-    DWORD flags =
-        EXTENDED_STARTUPINFO_PRESENT;
+
+
+
+    UpdateProcThreadAttribute(
+
+        attributes,
+
+        0,
+
+        PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+
+        hpc,
+
+        sizeof(HPCON),
+
+        nullptr,
+
+        nullptr
+
+    );
+
+
+
+
+
+
+
+
+    startup.lpAttributeList =
+
+        attributes;
+
+
+
+
+
+
+
+    wchar_t buffer[256];
+
+
+
+    wcscpy_s(
+
+        buffer,
+
+        command
+
+    );
+
+
+
+
+
 
 
 
     BOOL result =
+
         CreateProcessW(
 
             nullptr,
 
-            const_cast<wchar_t*>(command),
+            buffer,
 
             nullptr,
 
@@ -202,13 +248,13 @@ bool ProcessLauncher::start(
 
             FALSE,
 
-            flags,
+            EXTENDED_STARTUPINFO_PRESENT,
 
             nullptr,
 
             nullptr,
 
-            &siex.StartupInfo,
+            &startup.StartupInfo,
 
             &processInfo
 
@@ -218,9 +264,12 @@ bool ProcessLauncher::start(
 
 
 
+
+
+
     DeleteProcThreadAttributeList(
 
-        siex.lpAttributeList
+        attributes
 
     );
 
@@ -228,9 +277,15 @@ bool ProcessLauncher::start(
 
 
 
-    return result;
+    HeapFree(
 
-}
+        GetProcessHeap(),
+
+        0,
+
+        attributes
+
+    );
 
 
 
@@ -239,14 +294,7 @@ bool ProcessLauncher::start(
 
 
 
-
-bool ProcessLauncher::isRunning() const
-
-{
-
-    if(
-        processInfo.hProcess == nullptr
-    )
+    if(!result)
 
     {
 
@@ -256,30 +304,16 @@ bool ProcessLauncher::isRunning() const
 
 
 
-    DWORD code;
 
 
 
-    if(
-        GetExitCodeProcess(
 
-            processInfo.hProcess,
-
-            &code
-
-        )
-
-    )
-
-    {
-
-        return code == STILL_ACTIVE;
-
-    }
+    running = true;
 
 
 
-    return false;
+    return true;
+
 
 }
 
@@ -291,7 +325,49 @@ bool ProcessLauncher::isRunning() const
 
 
 
-DWORD ProcessLauncher::getProcessId() const
+bool ProcessManager::isRunning() const
+
+{
+
+    if(!running)
+
+    {
+
+        return false;
+
+    }
+
+
+
+
+
+    DWORD result =
+
+        WaitForSingleObject(
+
+            processInfo.hProcess,
+
+            0
+
+        );
+
+
+
+
+
+    return result == WAIT_TIMEOUT;
+
+}
+
+
+
+
+
+
+
+
+
+DWORD ProcessManager::getProcessId() const
 
 {
 
@@ -307,9 +383,10 @@ DWORD ProcessLauncher::getProcessId() const
 
 
 
-void ProcessLauncher::close()
+void ProcessManager::close()
 
 {
+
 
     if(processInfo.hProcess)
 
@@ -324,6 +401,7 @@ void ProcessLauncher::close()
         );
 
 
+
         CloseHandle(
 
             processInfo.hProcess
@@ -331,7 +409,13 @@ void ProcessLauncher::close()
         );
 
 
+
+        processInfo.hProcess = nullptr;
+
     }
+
+
+
 
 
 
@@ -345,20 +429,22 @@ void ProcessLauncher::close()
 
         );
 
+
+
+        processInfo.hThread = nullptr;
+
     }
 
 
 
-    ZeroMemory(
 
-        &processInfo,
 
-        sizeof(PROCESS_INFORMATION)
 
-    );
+    running = false;
 
 
 }
+
 
 
 #endif
