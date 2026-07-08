@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import '../backend/native_terminal.dart';
 import '../engine/terminal_engine.dart';
 import '../engine/screen_buffer.dart';
 import '../backend/terminal_backend.dart';
@@ -19,6 +22,9 @@ class TerminalController {
   final TerminalEngine engine;
 
 
+  final NativeTerminal? nativeTerminal;
+
+
 
   final InputPipeline input =
       InputPipeline();
@@ -35,7 +41,6 @@ class TerminalController {
 
 
 
-
   late ScreenBuffer buffer;
 
 
@@ -49,7 +54,16 @@ class TerminalController {
 
 
   int _lastCols = 0;
+
   int _lastRows = 0;
+
+
+
+  Timer? _nativeReader;
+
+
+
+  bool _running = false;
 
 
 
@@ -64,15 +78,30 @@ class TerminalController {
 
     TerminalBackend? backend,
 
-  }) : engine =
+    NativeTerminal? native,
+
+  })
+
+      :
+
+        engine =
             engine ??
             TerminalEngine(
               backend: backend,
               buffer: buffer,
-            ) {
+            ),
+
+
+        nativeTerminal = native
+
+  {
+
 
     this.buffer =
-        buffer ?? this.engine.buffer;
+        buffer ??
+        this.engine.buffer;
+
+
 
 
     keyboard.onInput =
@@ -92,7 +121,6 @@ class TerminalController {
 
 
 
-
   Future<void> start([
 
     ScreenBuffer? screen,
@@ -104,11 +132,14 @@ class TerminalController {
   async {
 
 
+
     if(screen != null){
 
       buffer = screen;
 
     }
+
+
 
 
     if(render != null){
@@ -119,22 +150,79 @@ class TerminalController {
 
 
 
+
     engine.onUpdate =
         (){
 
-
       refresh();
 
-
     };
+
 
 
 
     await engine.start();
 
 
+
+    _running = true;
+
+
+
+    _startNativeReader();
+
+
   }
 
+
+
+
+
+
+
+
+
+  void _startNativeReader(){
+
+
+    if(nativeTerminal == null){
+
+      return;
+
+    }
+
+
+
+    _nativeReader =
+        Timer.periodic(
+
+          const Duration(
+            milliseconds: 50,
+          ),
+
+          (_) {
+
+
+            final output =
+                nativeTerminal!.read();
+
+
+
+            if(output.isNotEmpty){
+
+              engine.write(
+                output,
+              );
+
+            }
+
+
+          },
+
+        );
+
+
+  }
 
 
 
@@ -148,11 +236,13 @@ class TerminalController {
   // =========================
 
 
+
   void send(
 
     String text,
 
   ){
+
 
     if(text.isEmpty){
 
@@ -161,9 +251,18 @@ class TerminalController {
     }
 
 
+
+
     engine.write(
       text,
     );
+
+
+
+    nativeTerminal?.write(
+      text,
+    );
+
 
   }
 
@@ -218,6 +317,7 @@ class TerminalController {
   // =========================
 
 
+
   void paste(
 
     String text,
@@ -228,6 +328,7 @@ class TerminalController {
     input.add(
       text,
     );
+
 
 
     final data =
@@ -245,7 +346,6 @@ class TerminalController {
 
 
   }
-
 
 
 
@@ -294,9 +394,11 @@ class TerminalController {
         );
 
 
+
     await TerminalClipboard.copy(
       text,
     );
+
 
   }
 
@@ -311,6 +413,7 @@ class TerminalController {
   // =========================
   // Selection
   // =========================
+
 
 
   void startSelection(
@@ -330,7 +433,9 @@ class TerminalController {
 
     refresh();
 
+
   }
+
 
 
 
@@ -355,6 +460,7 @@ class TerminalController {
 
     refresh();
 
+
   }
 
 
@@ -369,7 +475,9 @@ class TerminalController {
     selection.end();
 
 
+
     refresh();
+
 
   }
 
@@ -385,7 +493,9 @@ class TerminalController {
     selection.clear();
 
 
+
     refresh();
+
 
   }
 
@@ -398,8 +508,9 @@ class TerminalController {
 
 
   // =========================
-  // Terminal Resize
+  // Resize
   // =========================
+
 
 
   void resize(
@@ -411,9 +522,10 @@ class TerminalController {
   ){
 
 
-
-    if(cols <= 0 ||
-       rows <= 0){
+    if(
+      cols <= 0 ||
+      rows <= 0
+    ){
 
       return;
 
@@ -422,8 +534,11 @@ class TerminalController {
 
 
 
-    if(cols == _lastCols &&
-       rows == _lastRows){
+
+    if(
+      cols == _lastCols &&
+      rows == _lastRows
+    ){
 
       return;
 
@@ -433,7 +548,10 @@ class TerminalController {
 
 
     _lastCols = cols;
+
     _lastRows = rows;
+
+
 
 
 
@@ -445,6 +563,8 @@ class TerminalController {
 
 
 
+
+
     engine.resize(
       cols,
       rows,
@@ -452,7 +572,15 @@ class TerminalController {
 
 
 
+    nativeTerminal?.resize(
+      rows,
+      cols,
+    );
+
+
+
     refresh();
+
 
   }
 
@@ -483,8 +611,36 @@ class TerminalController {
   async {
 
 
+    _running = false;
+
+
+
+    _nativeReader?.cancel();
+
+
+
+    _nativeReader = null;
+
+
+
+    nativeTerminal?.dispose();
+
+
+
     await engine.kill();
 
+
+  }
+
+
+
+
+
+
+
+  void dispose(){
+
+    stop();
 
   }
 
