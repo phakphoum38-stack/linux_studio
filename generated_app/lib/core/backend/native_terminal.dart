@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
@@ -7,11 +8,15 @@ import 'terminal_ffi.dart';
 
 
 
-
 class NativeTerminal {
 
 
-  final TerminalFFI ffi;
+
+  late final TerminalBindings _api;
+
+
+
+  bool _loaded = false;
 
 
 
@@ -21,9 +26,70 @@ class NativeTerminal {
 
 
 
-  NativeTerminal()
 
-      : ffi = TerminalFFI();
+
+  NativeTerminal(){
+
+
+    _load();
+
+
+  }
+
+
+
+
+
+
+
+
+  void _load(){
+
+
+
+    if(!Platform.isWindows){
+
+      return;
+
+    }
+
+
+
+
+    try{
+
+
+      final dll =
+          DynamicLibrary.open(
+            'terminal_api.dll',
+          );
+
+
+
+      _api =
+          TerminalBindings(
+            dll,
+          );
+
+
+
+      _loaded = true;
+
+
+
+    }
+
+    catch(e){
+
+
+      _loaded = false;
+
+
+    }
+
+
+  }
+
 
 
 
@@ -41,11 +107,28 @@ class NativeTerminal {
   }){
 
 
-    _handle =
-        ffi.create(
+    if(!_loaded){
+
+      return false;
+
+    }
+
+
+
+    final result =
+        _api.terminal_create(
+
           rows,
+
           cols,
+
         );
+
+
+
+    _handle =
+        result;
+
 
 
     return
@@ -60,45 +143,48 @@ class NativeTerminal {
 
 
 
-  bool write(
-    String text,
+
+
+  void write(
+
+    String data,
+
   ){
 
 
-    if(
-      _handle == null
-    ){
+    if(!_loaded ||
+       _handle == nullptr){
 
-      return false;
+      return;
 
     }
 
 
 
-    final data =
-        text.toNativeUtf8();
+    final ptr =
+        data.toNativeUtf8();
 
 
 
-    final result =
-        ffi.write(
-          _handle!,
-          data,
-          text.length,
-        );
+    _api.terminal_write(
 
+      _handle!,
 
+      ptr.cast(),
 
-    calloc.free(
-      data,
+      data.length,
+
     );
 
 
 
-    return result;
+    calloc.free(
+      ptr,
+    );
 
 
   }
+
 
 
 
@@ -110,9 +196,9 @@ class NativeTerminal {
   String read(){
 
 
-    if(
-      _handle == null
-    ){
+
+    if(!_loaded ||
+       _handle == nullptr){
 
       return '';
 
@@ -120,29 +206,53 @@ class NativeTerminal {
 
 
 
+
+
     final buffer =
         calloc<Uint8>(
-          4096,
-        )
-        .cast<Utf8>();
-
-
-
-    final size =
-        ffi.read(
-          _handle!,
-          buffer,
-          4096,
+          8192,
         );
 
 
 
-    final output =
-        size > 0
-            ? buffer.toDartString(
-                length:size,
-              )
-            : '';
+    final size =
+        _api.terminal_read(
+
+          _handle!,
+
+          buffer.cast(),
+
+          8192,
+
+        );
+
+
+
+
+
+    if(size <= 0){
+
+
+      calloc.free(
+        buffer,
+      );
+
+
+      return '';
+
+    }
+
+
+
+
+
+    final data =
+        String.fromCharCodes(
+
+          buffer
+              .asTypedList(size),
+
+        );
 
 
 
@@ -151,7 +261,8 @@ class NativeTerminal {
     );
 
 
-    return output;
+
+    return data;
 
 
   }
@@ -163,30 +274,38 @@ class NativeTerminal {
 
 
 
-  bool resize(
+
+  void resize(
+
     int rows,
+
     int cols,
+
   ){
 
 
-    if(
-      _handle == null
-    ){
+    if(!_loaded ||
+       _handle == nullptr){
 
-      return false;
+      return;
 
     }
 
 
 
-    return ffi.resize(
+    _api.terminal_resize(
+
       _handle!,
+
       rows,
+
       cols,
+
     );
 
 
   }
+
 
 
 
@@ -198,21 +317,29 @@ class NativeTerminal {
   void dispose(){
 
 
-    if(
-      _handle != null
-    ){
+    if(!_loaded ||
+       _handle == nullptr){
 
-      ffi.close(
-        _handle!,
-      );
-
-
-      _handle = null;
+      return;
 
     }
 
 
+
+    _api.terminal_close(
+
+      _handle!,
+
+    );
+
+
+
+    _handle =
+        nullptr;
+
+
   }
+
 
 
 }
