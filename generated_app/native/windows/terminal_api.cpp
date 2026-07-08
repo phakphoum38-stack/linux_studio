@@ -1,33 +1,16 @@
 #include "terminal_api.h"
 
-#ifdef _WIN32
-
-
-#include "pipe.h"
 #include "conpty.h"
-#include "process.h"
-#include "reader.h"
-#include "writer.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 
 
-struct TerminalSession
+struct TerminalHandle
 {
 
-    PipeManager pipe;
-
-
-    ConPTY conpty;
-
-
-    ProcessLauncher process;
-
-
-    ReaderThread reader;
-
-
-    WriterThread writer;
-
+    ConPTY* conpty;
 
 };
 
@@ -37,216 +20,102 @@ struct TerminalSession
 
 
 
-extern "C"
-{
-
-
-
-TERMINAL_API void*
-terminal_create(
-
+void* terminal_create(
     int rows,
-
     int cols
-
 )
-
 {
 
+    TerminalHandle* handle =
+        new TerminalHandle();
 
-    TerminalSession* session =
-        new TerminalSession();
 
 
+    handle->conpty =
+        new ConPTY();
 
-    if(
-        !session->pipe.createPipes()
-    )
 
-    {
 
-        delete session;
-
-        return nullptr;
-
-    }
-
-
-
-    if(
-        !session->conpty.create(
-
-            rows,
-
-            cols,
-
-            session->pipe
-
-        )
-
-    )
-
-    {
-
-        delete session;
-
-        return nullptr;
-
-    }
-
-
-
-    session->process.start(
-
-        &session->conpty,
-
-        L"powershell.exe"
-
-    );
-
-
-
-    session->reader.start(
-
-        &session->pipe
-
-    );
-
-
-
-    session->writer.attach(
-
-        &session->pipe
-
-    );
-
-
-
-    return session;
-
-}
-
-
-
-
-
-
-
-TERMINAL_API bool
-terminal_write(
-
-    void* handle,
-
-    const char* data,
-
-    int length
-
-)
-
-{
-
-
-    if(!handle)
-
-        return false;
-
-
-
-    auto session =
-        static_cast<TerminalSession*>(handle);
-
-
-
-    return session->writer.write(
-
-        data,
-
-        length
-
-    );
-
-
-}
-
-
-
-
-
-
-
-TERMINAL_API int
-terminal_read(
-
-    void* handle,
-
-    char* buffer,
-
-    int size
-
-)
-
-{
-
-
-    if(!handle)
-
-        return -1;
-
-
-
-    auto session =
-        static_cast<TerminalSession*>(handle);
-
-
-
-    return session->pipe.read(
-
-        buffer,
-
-        size
-
-    );
-
-
-}
-
-
-
-
-
-
-
-TERMINAL_API bool
-terminal_resize(
-
-    void* handle,
-
-    int rows,
-
-    int cols
-
-)
-
-{
-
-
-    if(!handle)
-
-        return false;
-
-
-
-    auto session =
-        static_cast<TerminalSession*>(handle);
-
-
-
-    return session->conpty.resize(
-
+    if(!handle->conpty->create(
         rows,
-
         cols
+    ))
+    {
 
+        delete handle->conpty;
+
+        delete handle;
+
+        return nullptr;
+
+    }
+
+
+
+    return handle;
+
+}
+
+
+
+
+
+
+
+
+int terminal_write(
+    void* ptr,
+    const char* data,
+    int length
+)
+{
+
+
+    if(ptr == nullptr)
+        return 0;
+
+
+
+    TerminalHandle* handle =
+        (TerminalHandle*)ptr;
+
+
+
+    return handle->conpty->write(
+        data,
+        length
+    );
+
+}
+
+
+
+
+
+
+
+
+int terminal_read(
+    void* ptr,
+    unsigned char* buffer,
+    int size
+)
+{
+
+
+    if(ptr == nullptr)
+        return 0;
+
+
+
+    TerminalHandle* handle =
+        (TerminalHandle*)ptr;
+
+
+
+    return handle->conpty->read(
+        buffer,
+        size
     );
 
 
@@ -258,51 +127,68 @@ terminal_resize(
 
 
 
-TERMINAL_API void
-terminal_close(
 
-    void* handle
-
+int terminal_resize(
+    void* ptr,
+    int rows,
+    int cols
 )
-
 {
 
 
-    if(!handle)
+    if(ptr == nullptr)
+        return 0;
 
+
+
+    TerminalHandle* handle =
+        (TerminalHandle*)ptr;
+
+
+
+    return handle->conpty->resize(
+        rows,
+        cols
+    );
+
+
+}
+
+
+
+
+
+
+
+
+void terminal_close(
+    void* ptr
+)
+{
+
+
+    if(ptr == nullptr)
         return;
 
 
 
-    auto session =
-        static_cast<TerminalSession*>(handle);
+    TerminalHandle* handle =
+        (TerminalHandle*)ptr;
 
 
 
-    session->reader.stop();
+    if(handle->conpty)
+    {
+
+        handle->conpty->close();
+
+        delete handle->conpty;
+
+    }
 
 
 
-    session->process.close();
-
-
-
-    session->conpty.close();
-
-
-
-    session->pipe.close();
-
-
-
-    delete session;
+    delete handle;
 
 
 }
-
-
-
-}
-
-
-#endif
