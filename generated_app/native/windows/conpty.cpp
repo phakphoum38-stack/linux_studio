@@ -13,11 +13,16 @@ ConPTY::ConPTY()
 
     pipe = nullptr;
 
+    running = false;
+
+
     size.X = 80;
 
     size.Y = 24;
 
 }
+
+
 
 
 
@@ -37,19 +42,37 @@ ConPTY::~ConPTY()
 
 
 
+
+
+
 bool ConPTY::create(
+
     short cols,
+
     short rows,
+
     PipeManager* manager
+
 )
 
 {
 
 
     if(manager == nullptr)
+
     {
 
         return false;
+
+    }
+
+
+
+    if(running)
+
+    {
+
+        close();
 
     }
 
@@ -65,7 +88,10 @@ bool ConPTY::create(
 
 
 
+
+
     HRESULT result =
+
         CreatePseudoConsole(
 
             size,
@@ -82,7 +108,33 @@ bool ConPTY::create(
 
 
 
-    return SUCCEEDED(result);
+
+
+    if(
+
+        SUCCEEDED(result)
+
+    )
+
+    {
+
+        running = true;
+
+        return true;
+
+    }
+
+
+
+
+
+
+    hpc = nullptr;
+
+    pipe = nullptr;
+
+
+    return false;
 
 
 }
@@ -94,15 +146,25 @@ bool ConPTY::create(
 
 
 
+
 bool ConPTY::resize(
+
     short cols,
+
     short rows
+
 )
 
 {
 
 
-    if(!hpc)
+    if(
+
+        !hpc ||
+
+        !running
+
+    )
 
     {
 
@@ -112,7 +174,10 @@ bool ConPTY::resize(
 
 
 
+
+
     COORD newSize;
+
 
 
     newSize.X = cols;
@@ -121,17 +186,30 @@ bool ConPTY::resize(
 
 
 
+
+
     HRESULT result =
+
         ResizePseudoConsole(
+
             hpc,
+
             newSize
+
         );
 
 
 
+
+
+
+
     if(
+
         SUCCEEDED(result)
+
     )
+
     {
 
         size = newSize;
@@ -142,9 +220,13 @@ bool ConPTY::resize(
 
 
 
+
+
     return false;
 
+
 }
+
 
 
 
@@ -163,7 +245,9 @@ void ConPTY::close()
     {
 
         ClosePseudoConsole(
+
             hpc
+
         );
 
 
@@ -172,7 +256,26 @@ void ConPTY::close()
     }
 
 
+
+
+
+
+    pipe = nullptr;
+
+
+
+    running = false;
+
+
+
+
+    size.X = 0;
+
+    size.Y = 0;
+
+
 }
+
 
 
 
@@ -185,9 +288,10 @@ bool ConPTY::isRunning() const
 
 {
 
-    return hpc != nullptr;
+    return running;
 
 }
+
 
 
 
@@ -203,6 +307,8 @@ HPCON ConPTY::getHandle() const
     return hpc;
 
 }
+
+
 
 
 
