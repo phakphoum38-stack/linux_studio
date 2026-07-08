@@ -1,67 +1,88 @@
-import 'native_pty.dart';
+import 'dart:async';
+
+import 'native_terminal.dart';
 import 'terminal_backend.dart';
 
-class NativePtyBackend
-    implements TerminalBackend {
+class NativePtyBackend implements TerminalBackend {
+  NativePtyBackend();
 
+  final NativeTerminal _terminal =
+      NativeTerminal();
 
-@override
-Function(String)? onOutput;
+  final StreamController<String> _outputController =
+      StreamController<String>.broadcast();
 
+  final StreamController<String> _errorController =
+      StreamController<String>.broadcast();
 
-@override
-Function(String)? onError;
+  Timer? _pollTimer;
 
+  @override
+  Stream<String> get output =>
+      _outputController.stream;
 
+  @override
+  Stream<String> get errors =>
+      _errorController.stream;
 
-final NativePty pty =
-    NativePty();
+  @override
+  Future<void> start() async {
+    if (!_terminal.open()) {
+      _errorController.add(
+        'Failed to open native terminal.',
+      );
+      return;
+    }
 
+    _pollTimer = Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) {
+        try {
+          final text = _terminal.read();
 
+          if (text.isNotEmpty) {
+            _outputController.add(text);
+          }
+        } catch (e) {
+          _errorController.add(
+            e.toString(),
+          );
+        }
+      },
+    );
+  }
 
-@override
-Future<void> start()
-async {
+  @override
+  Future<void> write(
+    String text,
+  ) async {
+    _terminal.write(text);
+  }
 
+  @override
+  String read() {
+    return _terminal.read();
+  }
 
- // forkpty()
+  @override
+  Future<void> resize(
+    int cols,
+    int rows,
+  ) async {
+    _terminal.resize(
+      cols: cols,
+      rows: rows,
+    );
+  }
 
-}
+  @override
+  Future<void> stop() async {
+    _pollTimer?.cancel();
+    _pollTimer = null;
 
+    _terminal.close();
 
-
-@override
-void write(
- String data
-){
-
- // pty_write()
-
-}
-
-
-
-@override
-void resize(
- int cols,
- int rows
-){
-
- // ioctl()
-
-}
-
-
-
-@override
-Future<void> stop()
-async {
-
-
- // kill child
-
-
-}
-
-
+    await _outputController.close();
+    await _errorController.close();
+  }
 }
