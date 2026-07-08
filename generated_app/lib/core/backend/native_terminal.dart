@@ -1,345 +1,109 @@
+import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
 import 'terminal_ffi.dart';
 
-
-
-
 class NativeTerminal {
+  NativeTerminal({
+    this.rows = 24,
+    this.cols = 80,
+  });
 
-
-
-  late final TerminalBindings _api;
-
-
-
-  bool _loaded = false;
-
-
+  final int rows;
+  final int cols;
 
   Pointer<Void>? _handle;
 
+  bool get isOpen =>
+      _handle != null && _handle != nullptr;
 
+  bool open() {
+    if (isOpen) {
+      return true;
+    }
 
+    _handle = TerminalFFI.instance.create(
+      rows,
+      cols,
+    );
 
-
-
-
-  NativeTerminal(){
-
-
-    _load();
-
-
+    return isOpen;
   }
 
-
-
-
-
-
-
-
-  void _load(){
-
-
-
-    if(!Platform.isWindows){
-
-      return;
-
-    }
-
-
-
-
-    try{
-
-
-      final dll =
-          DynamicLibrary.open(
-            'terminal_api.dll',
-          );
-
-
-
-      _api =
-          TerminalBindings(
-            dll,
-          );
-
-
-
-      _loaded = true;
-
-
-
-    }
-
-    catch(e){
-
-
-      _loaded = false;
-
-
-    }
-
-
-  }
-
-
-
-
-
-
-
-
-
-  bool create({
-
-    int rows = 24,
-
-    int cols = 80,
-
-  }){
-
-
-    if(!_loaded){
-
+  bool write(String text) {
+    if (!isOpen) {
       return false;
-
     }
 
+    final ptr = text.toNativeUtf8();
 
-
-    final result =
-        _api.terminal_create(
-
-          rows,
-
-          cols,
-
-        );
-
-
-
-    _handle =
-        result;
-
-
-
-    return
-        _handle != nullptr;
-
-
-  }
-
-
-
-
-
-
-
-
-
-  void write(
-
-    String data,
-
-  ){
-
-
-    if(!_loaded ||
-       _handle == nullptr){
-
-      return;
-
+    try {
+      return TerminalFFI.instance.write(
+            _handle!,
+            ptr,
+            utf8.encode(text).length,
+          ) !=
+          0;
+    } finally {
+      malloc.free(ptr);
     }
-
-
-
-    final ptr =
-        data.toNativeUtf8();
-
-
-
-    _api.terminal_write(
-
-      _handle!,
-
-      ptr.cast(),
-
-      data.length,
-
-    );
-
-
-
-    calloc.free(
-      ptr,
-    );
-
-
   }
 
-
-
-
-
-
-
-
-
-  String read(){
-
-
-
-    if(!_loaded ||
-       _handle == nullptr){
-
+  String read([
+    int bufferSize = 8192,
+  ]) {
+    if (!isOpen) {
       return '';
-
     }
 
+    final buffer = calloc<Uint8>(bufferSize);
 
-
-
-
-    final buffer =
-        calloc<Uint8>(
-          8192,
-        );
-
-
-
-    final size =
-        _api.terminal_read(
-
-          _handle!,
-
-          buffer.cast(),
-
-          8192,
-
-        );
-
-
-
-
-
-    if(size <= 0){
-
-
-      calloc.free(
+    try {
+      final length = TerminalFFI.instance.read(
+        _handle!,
         buffer,
+        bufferSize,
       );
 
+      if (length <= 0) {
+        return '';
+      }
 
-      return '';
-
+      return utf8.decode(
+        buffer.asTypedList(length),
+      );
+    } finally {
+      calloc.free(buffer);
     }
-
-
-
-
-
-    final data =
-        String.fromCharCodes(
-
-          buffer
-              .asTypedList(size),
-
-        );
-
-
-
-    calloc.free(
-      buffer,
-    );
-
-
-
-    return data;
-
-
   }
 
+  bool resize({
+    required int rows,
+    required int cols,
+  }) {
+    if (!isOpen) {
+      return false;
+    }
 
+    return TerminalFFI.instance.resize(
+          _handle!,
+          rows,
+          cols,
+        ) !=
+        0;
+  }
 
-
-
-
-
-
-
-  void resize(
-
-    int rows,
-
-    int cols,
-
-  ){
-
-
-    if(!_loaded ||
-       _handle == nullptr){
-
+  void close() {
+    if (!isOpen) {
       return;
-
     }
 
-
-
-    _api.terminal_resize(
-
+    TerminalFFI.instance.close(
       _handle!,
-
-      rows,
-
-      cols,
-
     );
 
-
+    _handle = nullptr;
   }
-
-
-
-
-
-
-
-
-
-  void dispose(){
-
-
-    if(!_loaded ||
-       _handle == nullptr){
-
-      return;
-
-    }
-
-
-
-    _api.terminal_close(
-
-      _handle!,
-
-    );
-
-
-
-    _handle =
-        nullptr;
-
-
-  }
-
-
-
 }
