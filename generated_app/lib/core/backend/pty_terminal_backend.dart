@@ -1,225 +1,109 @@
 import 'dart:async';
 
-import 'terminal_backend.dart';
 import 'native_terminal.dart';
+import 'terminal_backend.dart';
 
-
-
-class PtyTerminalBackend
-    implements TerminalBackend {
-
-
+class PtyTerminalBackend implements TerminalBackend {
+  PtyTerminalBackend();
 
   final NativeTerminal _terminal =
       NativeTerminal();
 
+  final StreamController<String> _outputController =
+      StreamController<String>.broadcast();
 
+  final StreamController<String> _errorController =
+      StreamController<String>.broadcast();
 
   Timer? _reader;
 
-
-
   bool _running = false;
 
-
-
-  final StreamController<String> _output =
-      StreamController<String>.broadcast();
-
-
-
+  @override
   Stream<String> get output =>
-      _output.stream;
-
-
-
-
-
-
-
+      _outputController.stream;
 
   @override
-  Future<void> start()
+  Stream<String> get errors =>
+      _errorController.stream;
 
-  async {
-
-
-    final created =
-        _terminal.create(
-          rows: 24,
-          cols: 80,
-        );
-
-
-
-    if(!created){
-
-      throw Exception(
-        'Failed to create ConPTY session',
+  @override
+  Future<void> start() async {
+    if (!_terminal.open()) {
+      _errorController.add(
+        'Failed to create ConPTY session.',
       );
-
+      return;
     }
-
-
 
     _running = true;
 
+    _reader = Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) {
+        if (!_running) {
+          return;
+        }
 
+        try {
+          final data = _terminal.read();
 
-    _reader =
-        Timer.periodic(
-
-          const Duration(
-            milliseconds: 30,
-          ),
-
-          (_) {
-
-
-            if(!_running){
-
-              return;
-
-            }
-
-
-
-            final data =
-                _terminal.read();
-
-
-
-            if(data.isNotEmpty){
-
-              _output.add(
-                data,
-              );
-
-            }
-
-
-          },
-
-        );
-
-
-  }
-
-
-
-
-
-
-
-
-  @override
-  void write(
-
-    String data,
-
-  ){
-
-
-    if(!_running){
-
-      return;
-
-    }
-
-
-
-    _terminal.write(
-      data,
+          if (data.isNotEmpty) {
+            _outputController.add(data);
+          }
+        } catch (e) {
+          _errorController.add(
+            e.toString(),
+          );
+        }
+      },
     );
-
-
   }
 
-
-
-
-
-
-
-
   @override
-  String read(){
-
-
-    return _terminal.read();
-
-
-  }
-
-
-
-
-
-
-
-
-  @override
-  void resize(
-
-    int cols,
-
-    int rows,
-
-  ){
-
-
-    if(!_running){
-
+  Future<void> write(
+    String text,
+  ) async {
+    if (!_running) {
       return;
-
     }
 
+    _terminal.write(text);
+  }
 
+  @override
+  String read() {
+    return _terminal.read();
+  }
+
+  @override
+  Future<void> resize(
+    int cols,
+    int rows,
+  ) async {
+    if (!_running) {
+      return;
+    }
 
     _terminal.resize(
-
-      rows,
-
-      cols,
-
+      cols: cols,
+      rows: rows,
     );
-
-
   }
-
-
-
-
-
-
-
 
   @override
-  Future<void> stop()
-
-  async {
-
-
+  Future<void> stop() async {
     _running = false;
 
-
-
     _reader?.cancel();
-
-
-
     _reader = null;
 
+    _terminal.close();
 
-
-    _terminal.dispose();
-
-
-
-    await _output.close();
-
-
+    await _outputController.close();
+    await _errorController.close();
   }
+}
 
 
 
