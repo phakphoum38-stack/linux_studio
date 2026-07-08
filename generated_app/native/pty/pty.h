@@ -1,7 +1,18 @@
-#pragma once
+#ifndef PTY_H
+#define PTY_H
 
-int pty_spawn(const char* shell, int cols, int rows);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int pty_spawn(const char* shell);
+int pty_write(const char* data, int len);
 int pty_read(char* buffer, int size);
-int pty_write(const char* data, int length);
-int pty_resize(int cols, int rows);
-void pty_kill(void);
+void pty_resize(int cols, int rows);
+void pty_close();
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
