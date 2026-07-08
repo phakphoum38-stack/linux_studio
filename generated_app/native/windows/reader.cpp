@@ -4,11 +4,8 @@
 #ifdef _WIN32
 
 
-#include <cstring>
 
-
-
-ReaderThread::ReaderThread()
+Reader::Reader()
 
 {
 
@@ -22,8 +19,7 @@ ReaderThread::ReaderThread()
 
 
 
-
-ReaderThread::~ReaderThread()
+Reader::~Reader()
 
 {
 
@@ -37,120 +33,23 @@ ReaderThread::~ReaderThread()
 
 
 
-bool ReaderThread::start(
+
+
+void Reader::attach(
+
     PipeManager* manager
+
 )
 
 {
-
-
-    if(
-        manager == nullptr
-    )
-
-    {
-
-        return false;
-
-    }
-
 
 
     pipe = manager;
 
 
-    running = true;
+    running =
 
-
-
-    worker =
-        std::thread(
-            &ReaderThread::loop,
-            this
-        );
-
-
-
-    return true;
-
-}
-
-
-
-
-
-
-
-void ReaderThread::loop()
-
-{
-
-
-    char buffer[4096];
-
-
-
-    while(
-        running
-    )
-
-    {
-
-
-        if(
-            pipe == nullptr
-        )
-
-        {
-
-            break;
-
-        }
-
-
-
-        bool result =
-            pipe->read(
-                buffer,
-                sizeof(buffer)
-            );
-
-
-
-        if(
-            result
-        )
-
-        {
-
-
-            if(callback)
-
-            {
-
-                callback(
-                    buffer,
-                    strlen(buffer)
-                );
-
-            }
-
-
-        }
-
-
-        else
-
-        {
-
-
-            Sleep(10);
-
-
-        }
-
-
-    }
+        pipe != nullptr;
 
 
 }
@@ -161,46 +60,121 @@ void ReaderThread::loop()
 
 
 
-void ReaderThread::stop()
-
-{
 
 
-    running = false;
+int Reader::read(
 
+    char* buffer,
 
-
-    if(
-        worker.joinable()
-    )
-
-    {
-
-        worker.join();
-
-    }
-
-
-}
-
-
-
-
-
-
-
-void ReaderThread::setCallback(
-
-    std::function<void(
-        const char*,
-        int
-    )> cb
+    int size
 
 )
 
 {
 
-    callback = cb;
+
+    if(
+
+        !running ||
+
+        pipe == nullptr ||
+
+        buffer == nullptr
+
+    )
+
+    {
+
+        return -1;
+
+    }
+
+
+
+
+
+
+    DWORD bytesRead = 0;
+
+
+
+
+
+    BOOL result =
+
+        ReadFile(
+
+            pipe->getOutputRead(),
+
+            buffer,
+
+            size,
+
+            &bytesRead,
+
+            nullptr
+
+        );
+
+
+
+
+
+
+
+
+    if(!result)
+
+    {
+
+        return -1;
+
+    }
+
+
+
+
+
+    return (
+
+        int
+
+    )bytesRead;
+
+
+}
+
+
+
+
+
+
+
+
+
+bool Reader::isRunning() const
+
+{
+
+    return running;
+
+}
+
+
+
+
+
+
+
+
+
+void Reader::stop()
+
+{
+
+    running = false;
+
+    pipe = nullptr;
 
 }
 
