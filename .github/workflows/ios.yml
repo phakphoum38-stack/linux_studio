@@ -1,3 +1,4 @@
+```yaml
 name: Linux Studio iOS Build
 
 on:
@@ -16,7 +17,8 @@ jobs:
         working-directory: generated_app
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -27,7 +29,7 @@ jobs:
       - name: Flutter Doctor
         run: flutter doctor -v
 
-      - name: Flutter Pub Get
+      - name: Install Dependencies
         run: flutter pub get
 
       - name: Analyze
@@ -36,11 +38,16 @@ jobs:
       - name: Enable iOS
         run: flutter config --enable-ios
 
-      - name: Build iOS
-        run: flutter build ios --release --no-codesign
+      - name: Precache iOS
+        run: flutter precache --ios
 
-      - name: Upload Artifact
+      - name: Build iOS Simulator
+        run: flutter build ios --simulator --debug
+
+      - name: Upload Runner.app
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build
-          path: generated_app/build/ios/iphoneos/Runner.app
+          name: ios-simulator-build
+          path: generated_app/build/ios/iphonesimulator/Runner.app
+          if-no-files-found: error
+```
