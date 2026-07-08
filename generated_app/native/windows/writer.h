@@ -2,55 +2,68 @@
 
 #ifdef _WIN32
 
+
 #include <windows.h>
-#include <string>
-#include <mutex>
 
 #include "pipe.h"
 
 
-class WriterThread {
+
+class Writer {
 
 
 private:
 
-    PipeManager* pipe;
 
-    std::mutex lock;
+    PipeManager* pipe = nullptr;
+
+
+    bool running = false;
 
 
 
 public:
 
 
-    WriterThread();
+    Writer();
+
+
+    ~Writer();
 
 
 
-    ~WriterThread();
 
 
+    void attach(
 
-    bool attach(
         PipeManager* manager
+
     );
+
+
 
 
 
     bool write(
+
         const char* data,
+
         int length
+
     );
 
 
 
-    bool writeString(
-        const std::string& text
-    );
+
+
+    bool isRunning() const;
 
 
 
-    void close();
+
+
+    void stop();
+
 
 
 };
