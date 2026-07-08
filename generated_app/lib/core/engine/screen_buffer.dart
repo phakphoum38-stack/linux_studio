@@ -36,9 +36,7 @@ class ScreenBuffer {
 
 
 
-
-
-  void _initialize(){
+  void _initialize() {
 
     buffer =
         List.generate(
@@ -53,10 +51,6 @@ class ScreenBuffer {
 
 
 
-
-
-  // Compatibility
-
   int get width => cols;
 
   int get height => rows;
@@ -66,10 +60,8 @@ class ScreenBuffer {
       currentForeground;
 
 
-  set currentFg(int value){
-
+  set currentFg(int value) {
     currentForeground = value;
-
   }
 
 
@@ -78,40 +70,30 @@ class ScreenBuffer {
       currentBackground;
 
 
-  set currentBg(int value){
-
+  set currentBg(int value) {
     currentBackground = value;
-
   }
-
-
-
-
 
 
 
   bool inBounds(
     int row,
     int col,
-  ){
+  ) {
 
-    return row >=0 &&
+    return row >= 0 &&
         row < rows &&
-        col >=0 &&
+        col >= 0 &&
         col < cols;
 
   }
 
 
 
-
-
-
-
   TerminalCell cellAt(
     int row,
     int col,
-  ){
+  ) {
 
     return buffer[row][col];
 
@@ -119,45 +101,32 @@ class ScreenBuffer {
 
 
 
-
-
-
-
   TerminalCell cell(
     int row,
     int col,
   ) =>
-      cellAt(row,col);
-
-
-
-
+      cellAt(row, col);
 
 
 
   void moveCursor(
     int row,
     int col,
-  ){
+  ) {
 
     cursor.row =
         row.clamp(
           0,
-          rows-1,
+          rows - 1,
         );
-
 
     cursor.col =
         col.clamp(
           0,
-          cols-1,
+          cols - 1,
         );
 
   }
-
-
-
-
 
 
 
@@ -167,23 +136,16 @@ class ScreenBuffer {
     bool bold,
     bool underline,
     bool inverse,
-  ){
+  ) {
 
     currentForeground = fg;
-
     currentBackground = bg;
 
     this.bold = bold;
-
     this.underline = underline;
-
     this.inverse = inverse;
 
   }
-
-
-
-
 
 
 
@@ -191,19 +153,15 @@ class ScreenBuffer {
     int row,
     int col,
     String ch,
-  ){
+  ) {
 
-    if(!inBounds(row,col))
+    if (!inBounds(row, col)) {
       return;
-
+    }
 
     buffer[row][col].char = ch;
 
   }
-
-
-
-
 
 
 
@@ -212,29 +170,24 @@ class ScreenBuffer {
     int col,
     int fg,
     int bg,
-  ){
+  ) {
 
-    if(!inBounds(row,col))
+    if (!inBounds(row, col)) {
       return;
-
+    }
 
     buffer[row][col].foreground = fg;
-
     buffer[row][col].background = bg;
 
   }
 
 
 
+  void clear() {
 
+    for (int r = 0; r < rows; r++) {
 
-
-
-  void clear(){
-
-    for(int r=0;r<rows;r++){
-
-      for(int c=0;c<cols;c++){
+      for (int c = 0; c < cols; c++) {
 
         buffer[r][c].reset();
 
@@ -249,23 +202,16 @@ class ScreenBuffer {
 
 
 
-
-
-
-
   void clearLine(
     int row,
-  ){
+  ) {
 
-    if(row < 0 || row >= rows)
+    if (row < 0 || row >= rows) {
       return;
+    }
 
 
-    for(
-      int c=0;
-      c<cols;
-      c++
-    ){
+    for (int c = 0; c < cols; c++) {
 
       buffer[row][c] =
           TerminalCell();
@@ -276,21 +222,11 @@ class ScreenBuffer {
 
 
 
+  void scrollUp([
+    int count = 1,
+  ]) {
 
-
-
-
-  void scrollUp(
-    [
-      int count = 1
-    ],
-  ){
-
-    for(
-      int i=0;
-      i<count;
-      i++
-    ){
+    for (int i = 0; i < count; i++) {
 
       buffer.removeAt(0);
 
@@ -308,21 +244,11 @@ class ScreenBuffer {
 
 
 
+  void scrollDown([
+    int count = 1,
+  ]) {
 
-
-
-
-  void scrollDown(
-    [
-      int count = 1
-    ],
-  ){
-
-    for(
-      int i=0;
-      i<count;
-      i++
-    ){
+    for (int i = 0; i < count; i++) {
 
       buffer.removeLast();
 
@@ -341,40 +267,28 @@ class ScreenBuffer {
 
 
 
-
-
-
-
   void putChar(
     String ch,
-  ){
+  ) {
 
-    if(!inBounds(
+    if (!inBounds(
       cursor.row,
       cursor.col,
-    )) return;
+    )) {
+      return;
+    }
 
 
 
     buffer[cursor.row][cursor.col] =
         TerminalCell(
-
           char: ch,
-
-          foreground:
-              currentForeground,
-
-          background:
-              currentBackground,
-
-          bold:bold,
-
-          italic:italic,
-
-          underline:underline,
-
-          inverse:inverse,
-
+          foreground: currentForeground,
+          background: currentBackground,
+          bold: bold,
+          italic: italic,
+          underline: underline,
+          inverse: inverse,
         );
 
 
@@ -383,19 +297,18 @@ class ScreenBuffer {
 
 
 
-    if(cursor.col >= cols){
+    if (cursor.col >= cols) {
 
-      cursor.col=0;
+      cursor.col = 0;
 
       cursor.row++;
 
 
-      if(cursor.row >= rows){
+      if (cursor.row >= rows) {
 
         scrollUp();
 
-        cursor.row =
-            rows-1;
+        cursor.row = rows - 1;
 
       }
 
@@ -405,40 +318,32 @@ class ScreenBuffer {
 
 
 
-
-
-
-
   void writeText(
     String text,
-  ){
+  ) {
 
-    for(final rune in text.runes){
+    for (final rune in text.runes) {
 
       final ch =
           String.fromCharCode(rune);
 
 
-
-      switch(ch){
+      switch (ch) {
 
 
         case '\n':
 
           cursor.row++;
+          cursor.col = 0;
 
-          cursor.col=0;
 
-
-          if(cursor.row >= rows){
+          if (cursor.row >= rows) {
 
             scrollUp();
 
-            cursor.row =
-                rows-1;
+            cursor.row = rows - 1;
 
           }
-
 
           break;
 
@@ -446,7 +351,7 @@ class ScreenBuffer {
 
         case '\r':
 
-          cursor.col=0;
+          cursor.col = 0;
 
           break;
 
@@ -454,8 +359,9 @@ class ScreenBuffer {
 
         case '\b':
 
-          if(cursor.col>0)
+          if (cursor.col > 0) {
             cursor.col--;
+          }
 
           break;
 
@@ -473,27 +379,24 @@ class ScreenBuffer {
 
 
 
-
-
-
-
   void insertChar(
     int row,
     int col,
-  ){
+  ) {
 
-    if(!inBounds(row,col))
+    if (!inBounds(row, col)) {
       return;
+    }
 
 
-    for(
-      int c=cols-1;
-      c>col;
+    for (
+      int c = cols - 1;
+      c > col;
       c--
-    ){
+    ) {
 
       buffer[row][c] =
-          buffer[row][c-1].copy();
+          buffer[row][c - 1].copy();
 
     }
 
@@ -505,39 +408,32 @@ class ScreenBuffer {
 
 
 
-
-
-
-
   void deleteChar(
     int row,
     int col,
-  ){
+  ) {
 
-    if(!inBounds(row,col))
+    if (!inBounds(row, col)) {
       return;
+    }
 
 
-    for(
-      int c=col;
-      c<cols-1;
+    for (
+      int c = col;
+      c < cols - 1;
       c++
-    ){
+    ) {
 
       buffer[row][c] =
-          buffer[row][c+1].copy();
+          buffer[row][c + 1].copy();
 
     }
 
 
-    buffer[row][cols-1] =
+    buffer[row][cols - 1] =
         TerminalCell();
 
   }
-
-
-
-
 
 
 
@@ -545,8 +441,60 @@ class ScreenBuffer {
       => putChar(ch);
 
 
+
   void writeString(String text)
       => writeText(text);
 
+
+
+  void cursorDown([
+    int count = 1,
+  ]) {
+
+    cursor.row =
+        (cursor.row + count).clamp(
+          0,
+          rows - 1,
+        );
+
+  }
+
+
+
+  void cursorBack([
+    int count = 1,
+  ]) {
+
+    cursor.col =
+        (cursor.col - count).clamp(
+          0,
+          cols - 1,
+        );
+
+  }
+
+
+
+  void carriageReturn() {
+
+    cursor.col = 0;
+
+  }
+
+
+
+  void tab() {
+
+    final nextTab =
+        ((cursor.col ~/ 8) + 1) * 8;
+
+
+    cursor.col =
+        nextTab.clamp(
+          0,
+          cols - 1,
+        );
+
+  }
 
 }

@@ -2,7 +2,6 @@ import 'terminal_engine.dart';
 import 'screen_buffer.dart';
 import 'selection_engine.dart';
 import 'input_pipeline.dart';
-import 'ansi_csi_parser.dart';
 
 
 
@@ -173,7 +172,7 @@ class TerminalController {
       case 'ARROW_UP':
 
         engine.write(
-          TerminalKeyboard.key("UP")
+          '\x1b[A',
         );
 
         break;

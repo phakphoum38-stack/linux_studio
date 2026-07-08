@@ -2,6 +2,7 @@ import 'ansi_csi_parser.dart';
 import 'screen_buffer.dart';
 import 'vt100_state_machine.dart';
 
+import '../backend/pty_terminal_backend.dart';
 import '../backend/terminal_backend.dart';
 
 
@@ -31,16 +32,17 @@ class TerminalEngine {
 
   TerminalEngine({
 
-    required this.backend,
+    TerminalBackend? backend,
 
-    required this.buffer,
+    ScreenBuffer? buffer,
 
-  }) {
+  })  : backend = backend ?? PtyTerminalBackend(),
+        buffer = buffer ?? ScreenBuffer() {
 
 
     vt100 =
         VT100StateMachine(
-          buffer,
+          this.buffer,
         );
 
 
@@ -53,13 +55,18 @@ class TerminalEngine {
 
 
 
-  Future<void> start()
+  Future<void> start([
+    Function(dynamic event)? onOutput,
+  ])
   async {
 
 
 
     backend.onOutput =
-        _handleOutput;
+        (data) {
+      _handleOutput(data);
+      onOutput?.call(data);
+    };
 
 
 

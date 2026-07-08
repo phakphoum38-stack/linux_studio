@@ -1,0 +1,4 @@
+{
+    "chat.agent.maxRequests": 90000000000,
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}

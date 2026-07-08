@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../core/engine/screen_buffer.dart';
+import 'screen_buffer.dart';
 
 class TerminalView extends StatefulWidget {
   final ScreenBuffer buffer;

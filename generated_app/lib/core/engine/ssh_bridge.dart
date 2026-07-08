@@ -183,7 +183,7 @@ class SshBridge {
 
 
 
-    await _session?.close();
+    _session?.close();
 
 
 

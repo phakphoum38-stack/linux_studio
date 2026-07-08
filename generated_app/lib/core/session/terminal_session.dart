@@ -1,8 +1,8 @@
-import 'terminal_engine.dart';
-import 'screen_buffer.dart';
-import 'scrollback_buffer.dart';
-import 'terminal_scroll_controller.dart';
-import 'diff_renderer.dart';
+import '../engine/terminal_engine.dart';
+import '../engine/screen_buffer.dart';
+import '../scroll/scrollback_buffer.dart';
+import '../scroll/terminal_scroll_controller.dart';
+import '../render/diff_renderer.dart';
 
 
 
@@ -20,7 +20,6 @@ class TerminalSession {
 
   final ScrollbackBuffer scrollback =
       ScrollbackBuffer(
-        maxLines: 10000,
       );
 
 
@@ -90,7 +89,7 @@ class TerminalSession {
 
 
         if(text != null &&
-           text!.isNotEmpty){
+           text.isNotEmpty){
 
 
 

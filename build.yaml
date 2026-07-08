@@ -1,0 +1,54 @@
+app:
+  name: Linux Studio
+  package_id: com.phakphoum38.linuxstudio
+  version: 0.1.0+1
+
+paths:
+  project_root: .
+  flutter_app: generated_app
+  windows_binary: generated_app/build/windows/x64/runner/Release/generated_app.exe
+
+setup:
+  bootstrap:
+    command: ./scripts/bootstrap.sh
+  root_packages:
+    command: flutter pub get
+  app_packages:
+    command: flutter pub get -C generated_app
+
+platforms:
+  windows:
+    enabled: true
+    scaffold:
+      command: flutter create --platforms=windows .
+      working_directory: generated_app
+    analyze:
+      command: flutter analyze
+      working_directory: generated_app
+    build:
+      command: flutter build windows --release
+      working_directory: generated_app
+      output: build/windows/x64/runner/Release/generated_app.exe
+
+  android:
+    enabled: false
+    note: Platform folder is not present under generated_app.
+
+  ios:
+    enabled: false
+    note: Platform folder is not present under generated_app.
+
+native:
+  windows_conpty:
+    command: ./generated_app/native/windows/conpty/build.ps1
+    enabled: false
+    note: Enable when the native ConPTY backend is wired into generated_app.
+
+verification:
+  last_successful:
+    - command: flutter analyze
+      working_directory: generated_app
+      result: no_issues_found
+    - command: flutter build windows --release
+      working_directory: generated_app
+      output: build/windows/x64/runner/Release/generated_app.exe

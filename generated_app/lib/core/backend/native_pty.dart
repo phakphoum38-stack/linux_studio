@@ -32,12 +32,12 @@ class NativePty {
   late final spawn =
       lib.lookupFunction<
         Int32 Function(
-          Pointer<Utf8>,
+          Pointer<Void>,
           Int32,
           Int32,
         ),
         int Function(
-          Pointer<Utf8>,
+          Pointer<Void>,
           int,
           int,
         )

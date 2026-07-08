@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
 
@@ -80,13 +81,10 @@ class SshTerminalBackend
 
  session!
    .stdout
-   .transform(
-     utf8.decoder,
-   )
    .listen((data){
 
      onOutput?.call(
-       data,
+       utf8.decode(data),
      );
 
    });
@@ -115,7 +113,9 @@ class SshTerminalBackend
  ){
 
    session?.write(
-     data,
+     Uint8List.fromList(
+       utf8.encode(data),
+     ),
    );
 
  }
@@ -149,7 +149,7 @@ class SshTerminalBackend
  Future<void> stop()
  async {
 
-   await session?.close();
+   session?.close();
 
    client?.close();
 

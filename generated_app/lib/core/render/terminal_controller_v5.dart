@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 import '../engine/screen_buffer.dart';
 import 'render_pipeline.dart';
 
@@ -39,7 +41,7 @@ class TerminalControllerV5 {
 
     screen.buffer[cursorRow][cursorCol].char = ch;
 
-    pipeline.invalidateRow(cursorRow);
+    pipeline.invalidateRow(cursorRow, screen.cols);
 
     cursorCol++;
 

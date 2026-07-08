@@ -1,7 +1,7 @@
 import 'terminal_engine.dart';
 import 'screen_buffer.dart';
 import 'scrollback_buffer.dart';
-import 'diff_renderer.dart';
+import '../render/diff_renderer.dart';
 
 class TerminalSession {
   final TerminalEngine engine = TerminalEngine();

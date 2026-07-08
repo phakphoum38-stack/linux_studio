@@ -3,8 +3,8 @@ import 'dart:io';
 import 'terminal_backend.dart';
 
 import 'native_pty_backend.dart';
+import 'pty_terminal_backend.dart';
 import 'ssh_terminal_backend.dart';
-import 'conpty_terminal_backend.dart';
 
 
 
@@ -82,7 +82,7 @@ class BackendFactory {
       Platform.isWindows
     ){
 
-      return ConPtyTerminalBackend();
+      return PtyTerminalBackend();
 
     }
 

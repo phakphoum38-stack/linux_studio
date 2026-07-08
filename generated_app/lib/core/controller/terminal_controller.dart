@@ -1,10 +1,11 @@
 import '../engine/terminal_engine.dart';
 import '../engine/screen_buffer.dart';
+import '../backend/terminal_backend.dart';
 
-import '../input/input_pipeline.dart';
+import '../engine/input_pipeline.dart';
 import '../input/keyboard_pipeline.dart';
 
-import '../selection/selection_engine.dart';
+import '../engine/selection_engine.dart';
 
 import '../clipboard/terminal_clipboard.dart';
 
@@ -57,9 +58,21 @@ class TerminalController {
 
   TerminalController({
 
-    required this.engine,
+    TerminalEngine? engine,
 
-  }) {
+    ScreenBuffer? buffer,
+
+    TerminalBackend? backend,
+
+  }) : engine =
+            engine ??
+            TerminalEngine(
+              backend: backend,
+              buffer: buffer,
+            ) {
+
+    this.buffer =
+        buffer ?? this.engine.buffer;
 
 
     keyboard.onInput =
@@ -80,21 +93,29 @@ class TerminalController {
 
 
 
-  Future<void> start(
+  Future<void> start([
 
-    ScreenBuffer screen,
+    ScreenBuffer? screen,
 
-    Function() render,
+    Function()? render,
 
-  )
+  ])
 
   async {
 
 
-    buffer = screen;
+    if(screen != null){
+
+      buffer = screen;
+
+    }
 
 
-    onUpdate = render;
+    if(render != null){
+
+      onUpdate = render;
+
+    }
 
 
 
@@ -141,6 +162,24 @@ class TerminalController {
 
 
     engine.write(
+      text,
+    );
+
+  }
+
+
+
+
+
+
+
+  void write(
+
+    String text,
+
+  ){
+
+    send(
       text,
     );
 

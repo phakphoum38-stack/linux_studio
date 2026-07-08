@@ -13,9 +13,76 @@ class VT100StateMachine {
 
 
 
-  VT100StateMachine(
-    this.buffer,
-  );
+  VT100StateMachine([
+    ScreenBuffer? buffer,
+  ]) : buffer = buffer ?? ScreenBuffer();
+
+
+
+
+  int get cursorRow =>
+      buffer.cursor.row;
+
+
+  set cursorRow(int value){
+
+    buffer.cursor.row =
+        value.clamp(
+          0,
+          buffer.rows-1,
+        );
+
+  }
+
+
+  int get cursorCol =>
+      buffer.cursor.col;
+
+
+  set cursorCol(int value){
+
+    buffer.cursor.col =
+        value.clamp(
+          0,
+          buffer.cols-1,
+        );
+
+  }
+
+
+  int get fg =>
+      buffer.currentForeground;
+
+
+  int get bg =>
+      buffer.currentBackground;
+
+
+  void applyCommand(
+    String cmd,
+    List<int> args,
+  ){
+
+    execute(
+      cmd,
+      args,
+    );
+
+  }
+
+
+  void process(
+    String cmd,
+    List<int> args,
+    ScreenBuffer target,
+  ){
+
+    execute(
+      cmd,
+      args,
+    );
+
+  }
 
 
 

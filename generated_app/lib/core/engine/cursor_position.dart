@@ -17,7 +17,7 @@ class CursorPosition {
 
 
 
-  void reset(){
+  void reset() {
 
     row = 0;
     col = 0;
@@ -30,10 +30,11 @@ class CursorPosition {
 
   void startBlink(
     Function refresh,
-  ){
+  ) {
 
-    if(blinking)
+    if (blinking) {
       return;
+    }
 
 
     blinking = true;
@@ -61,7 +62,8 @@ class CursorPosition {
 
 
 
-  void stopBlink(){
+
+  void stopBlink() {
 
     _timer?.cancel();
 
@@ -79,16 +81,17 @@ class CursorPosition {
 
 
 
+
   void move(
     int r,
     int c,
-  ){
+  ) {
 
-    row=r;
-    col=c;
+    row = r;
+    col = c;
 
 
-    visible=true;
+    visible = true;
 
   }
 

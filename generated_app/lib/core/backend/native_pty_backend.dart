@@ -1,3 +1,6 @@
+import 'native_pty.dart';
+import 'terminal_backend.dart';
+
 class NativePtyBackend
     implements TerminalBackend {
 
