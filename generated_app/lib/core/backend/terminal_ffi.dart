@@ -5,6 +5,8 @@ import 'package:ffi/ffi.dart';
 
 
 
+
+
 typedef TerminalCreateNative = Pointer<Void> Function(
   Int32 rows,
   Int32 cols,
@@ -20,7 +22,11 @@ typedef TerminalCreate =
 
 
 
-typedef TerminalWriteNative = Bool Function(
+
+
+
+
+typedef TerminalWriteNative = Int32 Function(
   Pointer<Void> handle,
   Pointer<Utf8> data,
   Int32 length,
@@ -28,7 +34,7 @@ typedef TerminalWriteNative = Bool Function(
 
 
 typedef TerminalWrite =
-    bool Function(
+    int Function(
       Pointer<Void> handle,
       Pointer<Utf8> data,
       int length,
@@ -37,9 +43,13 @@ typedef TerminalWrite =
 
 
 
+
+
+
+
 typedef TerminalReadNative = Int32 Function(
   Pointer<Void> handle,
-  Pointer<Utf8> buffer,
+  Pointer<Uint8> buffer,
   Int32 size,
 );
 
@@ -47,14 +57,18 @@ typedef TerminalReadNative = Int32 Function(
 typedef TerminalRead =
     int Function(
       Pointer<Void> handle,
-      Pointer<Utf8> buffer,
+      Pointer<Uint8> buffer,
       int size,
     );
 
 
 
 
-typedef TerminalResizeNative = Bool Function(
+
+
+
+
+typedef TerminalResizeNative = Int32 Function(
   Pointer<Void> handle,
   Int32 rows,
   Int32 cols,
@@ -62,11 +76,15 @@ typedef TerminalResizeNative = Bool Function(
 
 
 typedef TerminalResize =
-    bool Function(
+    int Function(
       Pointer<Void> handle,
       int rows,
       int cols,
     );
+
+
+
+
 
 
 
@@ -85,22 +103,29 @@ typedef TerminalClose =
 
 
 
+
+
+
+
 class TerminalFFI {
 
 
-  late DynamicLibrary library;
+
+  late final DynamicLibrary library;
 
 
 
-  late TerminalCreate create;
+  late final TerminalCreate create;
 
-  late TerminalWrite write;
+  late final TerminalWrite write;
 
-  late TerminalRead read;
+  late final TerminalRead read;
 
-  late TerminalResize resize;
+  late final TerminalResize resize;
 
-  late TerminalClose close;
+  late final TerminalClose close;
+
+
 
 
 
@@ -109,28 +134,25 @@ class TerminalFFI {
   TerminalFFI(){
 
 
-    if(
-      Platform.isWindows
-    ){
 
-      library =
-          DynamicLibrary.open(
-            'terminal_api.dll',
-          );
-
-
-    }
-
-
-    else
-
-    {
+    if(!Platform.isWindows){
 
       throw UnsupportedError(
-        'Windows only',
+        'ConPTY requires Windows',
       );
 
     }
+
+
+
+
+
+    library =
+        DynamicLibrary.open(
+          'terminal_api.dll',
+        );
+
+
 
 
 
@@ -147,6 +169,9 @@ class TerminalFFI {
 
 
 
+
+
+
     write =
         library.lookupFunction<
           TerminalWriteNative,
@@ -154,6 +179,9 @@ class TerminalFFI {
         >(
           'terminal_write',
         );
+
+
+
 
 
 
@@ -169,6 +197,9 @@ class TerminalFFI {
 
 
 
+
+
+
     resize =
         library.lookupFunction<
           TerminalResizeNative,
@@ -176,6 +207,9 @@ class TerminalFFI {
         >(
           'terminal_resize',
         );
+
+
+
 
 
 
@@ -189,6 +223,9 @@ class TerminalFFI {
         );
 
 
+
   }
+
+
 
 }
