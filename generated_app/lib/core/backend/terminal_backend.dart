@@ -1,15 +1,7 @@
 abstract class TerminalBackend {
 
 
-  Function(String data)? onOutput;
-
-
-  Function(String error)? onError;
-
-
-
   Future<void> start();
-
 
 
   void write(
@@ -17,12 +9,13 @@ abstract class TerminalBackend {
   );
 
 
+  String read();
+
 
   void resize(
     int cols,
     int rows,
   );
-
 
 
   Future<void> stop();
