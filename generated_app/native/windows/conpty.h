@@ -12,33 +12,54 @@ class ConPTY {
 
 private:
 
-    HPCON hpc;
+    HPCON hpc = nullptr;
 
-    COORD size;
 
-    PipeManager* pipe;
+    COORD size{};
+
+
+    PipeManager* pipe = nullptr;
+
+
+    bool running = false;
+
 
 
 public:
 
+
     ConPTY();
+
 
     ~ConPTY();
 
 
 
+
+
     bool create(
+
         short cols,
+
         short rows,
+
         PipeManager* manager
+
     );
+
+
 
 
 
     bool resize(
+
         short cols,
+
         short rows
+
     );
+
+
 
 
 
@@ -46,11 +67,16 @@ public:
 
 
 
+
+
     bool isRunning() const;
 
 
 
+
+
     HPCON getHandle() const;
+
 
 
 };
