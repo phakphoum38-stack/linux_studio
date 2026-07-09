@@ -5,7 +5,6 @@ import '../scroll/terminal_scroll_controller.dart';
 import '../render/diff_renderer.dart';
 
 
-
 class TerminalSession {
 
 
@@ -19,8 +18,7 @@ class TerminalSession {
 
 
   final ScrollbackBuffer scrollback =
-      ScrollbackBuffer(
-      );
+      ScrollbackBuffer();
 
 
 
@@ -34,6 +32,7 @@ class TerminalSession {
 
 
   Function()? onUpdate;
+
 
 
 
@@ -53,6 +52,8 @@ class TerminalSession {
 
 
 
+
+
   Future<void> start(
     ScreenBuffer buffer,
     Function() render,
@@ -65,64 +66,23 @@ class TerminalSession {
 
 
 
-    await engine.start(
-
-      (event){
-
-        String? text;
+    engine.onUpdate =
+        () {
 
 
+      onUpdate?.call();
 
-        if(event is String){
 
-          text = event;
-
-        }
-
-        else if(event.text != null){
-
-          text = event.text;
-
-        }
+    };
 
 
 
+    await engine.start();
 
-        if(text != null &&
-           text.isNotEmpty){
-
-
-
-          screen.writeText(
-            text,
-          );
-
-
-
-          scrollback.add(
-            text,
-          );
-
-
-
-          // auto follow output
-          if(scroll.atBottom){
-
-            scroll.bottom();
-
-          }
-
-
-
-          onUpdate?.call();
-
-        }
-
-      },
-
-    );
 
   }
+
+
 
 
 
@@ -134,6 +94,7 @@ class TerminalSession {
     String input,
   ){
 
+
     if(input.isEmpty){
 
       return;
@@ -141,9 +102,11 @@ class TerminalSession {
     }
 
 
+
     engine.write(
       input,
     );
+
 
   }
 
@@ -159,15 +122,18 @@ class TerminalSession {
   // ===================
 
 
+
   void scrollUp(){
 
     scroll.scrollUp(
       3,
     );
 
+
     onUpdate?.call();
 
   }
+
 
 
 
@@ -179,9 +145,12 @@ class TerminalSession {
       3,
     );
 
+
     onUpdate?.call();
 
   }
+
+
 
 
 
@@ -191,9 +160,12 @@ class TerminalSession {
 
     scroll.pageUp();
 
+
     onUpdate?.call();
 
   }
+
+
 
 
 
@@ -203,9 +175,12 @@ class TerminalSession {
 
     scroll.pageDown();
 
+
     onUpdate?.call();
 
   }
+
+
 
 
 
@@ -215,6 +190,7 @@ class TerminalSession {
 
     scroll.bottom();
 
+
     onUpdate?.call();
 
   }
@@ -225,10 +201,14 @@ class TerminalSession {
 
 
 
+
   Future<void> kill()
+
   async {
 
+
     await engine.kill();
+
 
   }
 
