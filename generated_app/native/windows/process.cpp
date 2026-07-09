@@ -27,6 +27,7 @@ ProcessManager::~ProcessManager()
 
 
 
+
 bool ProcessManager::start(
     HPCON hpc,
     const wchar_t* command
@@ -34,18 +35,31 @@ bool ProcessManager::start(
 {
 
     if(hpc == nullptr)
+    {
         return false;
+    }
+
+
+
+    if(command == nullptr)
+    {
+        command =
+            L"C:\\Windows\\System32\\cmd.exe";
+    }
+
 
 
 
     STARTUPINFOEXW startup{};
+
 
     startup.StartupInfo.cb =
         sizeof(STARTUPINFOEXW);
 
 
 
-    SIZE_T size = 0;
+
+    SIZE_T attributeSize = 0;
 
 
 
@@ -53,38 +67,46 @@ bool ProcessManager::start(
         nullptr,
         1,
         0,
-        &size
+        &attributeSize
     );
 
 
 
-    auto list =
-        (LPPROC_THREAD_ATTRIBUTE_LIST)
-        HeapAlloc(
-            GetProcessHeap(),
-            0,
-            size
+
+    auto attributes =
+        reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(
+            HeapAlloc(
+                GetProcessHeap(),
+                0,
+                attributeSize
+            )
         );
 
 
-    if(!list)
+
+    if(!attributes)
+    {
         return false;
+    }
+
+
 
 
 
     if(!InitializeProcThreadAttributeList(
-        list,
+        attributes,
         1,
         0,
-        &size
+        &attributeSize
     ))
     {
 
         HeapFree(
             GetProcessHeap(),
             0,
-            list
+            attributes
         );
+
 
         return false;
 
@@ -93,73 +115,149 @@ bool ProcessManager::start(
 
 
 
-    UpdateProcThreadAttribute(
-        list,
+
+
+
+    if(!UpdateProcThreadAttribute(
+
+        attributes,
+
         0,
+
         PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+
         hpc,
+
         sizeof(HPCON),
+
         nullptr,
+
         nullptr
-    );
+
+    ))
+    {
+
+        DeleteProcThreadAttributeList(
+            attributes
+        );
+
+
+        HeapFree(
+            GetProcessHeap(),
+            0,
+            attributes
+        );
+
+
+        return false;
+
+    }
 
 
 
-    startup.lpAttributeList = list;
 
 
 
-    wchar_t cmd[512];
+    startup.lpAttributeList =
+        attributes;
+
+
+
+
+
+    wchar_t cmdLine[512];
+
 
 
     wcscpy_s(
-        cmd,
+        cmdLine,
+        512,
         command
     );
 
 
 
-    BOOL ok =
+
+
+
+
+    BOOL result =
         CreateProcessW(
+
             nullptr,
-            cmd,
+
+            cmdLine,
+
+
             nullptr,
+
             nullptr,
-            FALSE,
-            EXTENDED_STARTUPINFO_PRESENT,
+
+
+            TRUE,
+
+
+            EXTENDED_STARTUPINFO_PRESENT |
+            CREATE_UNICODE_ENVIRONMENT,
+
+
             nullptr,
+
+
             nullptr,
+
+
             &startup.StartupInfo,
+
+
             &processInfo
+
         );
 
 
 
 
+
+
+
     DeleteProcThreadAttributeList(
-        list
+        attributes
     );
+
 
 
     HeapFree(
         GetProcessHeap(),
         0,
-        list
+        attributes
     );
 
 
 
-    if(!ok)
+
+
+
+
+    if(!result)
+    {
         return false;
+    }
+
+
+
 
 
 
     running = true;
 
 
+
     return true;
 
+
 }
+
+
 
 
 
@@ -171,7 +269,9 @@ bool ProcessManager::isRunning() const
 {
 
     if(!running)
+    {
         return false;
+    }
 
 
 
@@ -190,11 +290,17 @@ bool ProcessManager::isRunning() const
 
 
 
+
+
+
+
 void ProcessManager::close()
 {
 
+
     if(processInfo.hProcess)
     {
+
 
         TerminateProcess(
             processInfo.hProcess,
@@ -202,34 +308,51 @@ void ProcessManager::close()
         );
 
 
+        WaitForSingleObject(
+            processInfo.hProcess,
+            1000
+        );
+
+
+
         CloseHandle(
             processInfo.hProcess
         );
 
 
-        processInfo.hProcess=nullptr;
+
+        processInfo.hProcess =
+            nullptr;
+
 
     }
+
+
+
 
 
 
     if(processInfo.hThread)
     {
 
+
         CloseHandle(
             processInfo.hThread
         );
 
 
-        processInfo.hThread=nullptr;
+        processInfo.hThread =
+            nullptr;
+
 
     }
 
 
 
-    running=false;
+    running = false;
 
 }
+
 
 
 #endif
