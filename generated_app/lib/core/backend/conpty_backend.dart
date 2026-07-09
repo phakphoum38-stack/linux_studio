@@ -10,6 +10,13 @@ class ConPTYBackend
     implements TerminalBackend {
 
 
+  final StreamController<String> _outputController =
+    StreamController<String>.broadcast();
+
+  
+  final StreamController<String> _errorController =
+    StreamController<String>.broadcast();
+
 
   final NativeTerminal terminal =
       NativeTerminal();
@@ -42,7 +49,7 @@ class ConPTYBackend
 
 
     started =
-        terminal.create(
+        terminal.open(
           rows: 24,
           cols: 80,
         );
@@ -57,9 +64,9 @@ class ConPTYBackend
 
 
   @override
-  void write(
-    String data,
-  ){
+  Future<void> write(String text) async {
+    _terminal.write(text);
+  }
 
 
     if(!started){
@@ -108,10 +115,12 @@ class ConPTYBackend
 
 
   @override
-  void resize(
-    int cols,
-    int rows,
-  ){
+  Future<void> resize(int cols, int rows) async {
+    _terminal.resize(
+      cols: cols,
+      rows: rows,
+    );
+  }
 
 
     if(!started){
@@ -143,7 +152,7 @@ class ConPTYBackend
   async {
 
 
-    terminal.dispose();
+    terminal.close();
 
 
 
@@ -151,6 +160,14 @@ class ConPTYBackend
 
 
   }
+
+  @override
+  Stream<String> get output =>
+      _outputController.stream;
+
+  @override
+  Stream<String> get errors =>
+      _errorController.stream;
 
 
 }
