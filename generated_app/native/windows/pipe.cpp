@@ -29,45 +29,78 @@ PipeManager::~PipeManager()
 
 
 bool PipeManager::createPipes()
-{
 
+{
 
     SECURITY_ATTRIBUTES sa{};
 
-
     sa.nLength =
-        sizeof(sa);
+        sizeof(SECURITY_ATTRIBUTES);
 
+    sa.lpSecurityDescriptor =
+        nullptr;
 
     sa.bInheritHandle =
         TRUE;
 
 
 
-    //
-    // ConPTY input
-    //
+    // stdin
 
-    if(!CreatePipe(
-        &inputRead,
-        &inputWrite,
-        &sa,
-        0))
+    if(
+        !CreatePipe(
+            &inputRead,
+            &inputWrite,
+            &sa,
+            0
+        )
+    )
     {
         return false;
     }
 
 
 
-    //
-    // Parent writes
-    //
-
     SetHandleInformation(
         inputWrite,
         HANDLE_FLAG_INHERIT,
         0
     );
+
+
+
+
+    // stdout
+
+    if(
+        !CreatePipe(
+            &outputRead,
+            &outputWrite,
+            &sa,
+            0
+        )
+    )
+    {
+
+        close();
+
+        return false;
+
+    }
+
+
+
+    SetHandleInformation(
+        outputRead,
+        HANDLE_FLAG_INHERIT,
+        0
+    );
+
+
+
+    return true;
+
+}
 
 
 
