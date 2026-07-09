@@ -23,10 +23,9 @@ class _TerminalScreenState
     extends State<TerminalScreen> {
 
 
-  late final Terminal xterm;
+  late Terminal terminal;
 
-
-  late final app.TerminalController controller;
+  late app.TerminalController controller;
 
 
 
@@ -36,11 +35,9 @@ class _TerminalScreenState
     super.initState();
 
 
-
-    xterm =
-        Terminal(
-          maxLines: 10000,
-        );
+    terminal = Terminal(
+      maxLines: 10000,
+    );
 
 
 
@@ -49,7 +46,7 @@ class _TerminalScreenState
 
 
 
-    xterm.onOutput =
+    terminal.onOutput =
         (data){
 
       controller.write(
@@ -60,23 +57,25 @@ class _TerminalScreenState
 
 
 
-    _start();
+    controller.onUpdate =
+        (){
+
+      final text =
+          controller.buffer.toString();
+
+
+      terminal.write(
+        text,
+      );
+
+    };
+
+
+
+    controller.start();
+
 
   }
-
-
-
-
-
-
-  Future<void> _start()
-  async {
-
-    await controller.start();
-
-  }
-
-
 
 
 
@@ -89,27 +88,21 @@ class _TerminalScreenState
 
     return Scaffold(
 
-      appBar:
-
-        AppBar(
-
-          title:
-
-            const Text(
-              'Linux Studio Terminal',
-            ),
-
-        ),
-
+      appBar: AppBar(
+        title:
+          const Text(
+            'Linux Studio Terminal',
+          ),
+      ),
 
 
       body:
 
         TerminalView(
 
-          xterm,
+          terminal,
 
-          autofocus: true,
+          autofocus:true,
 
         ),
 
@@ -120,20 +113,13 @@ class _TerminalScreenState
 
 
 
-
-
-
   @override
   void dispose(){
 
-
-    controller.dispose();
-
+    controller.stop();
 
     super.dispose();
 
-
   }
-
 
 }
