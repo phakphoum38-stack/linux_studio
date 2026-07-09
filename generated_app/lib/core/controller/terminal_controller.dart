@@ -573,8 +573,8 @@ class TerminalController {
 
 
     nativeTerminal?.resize(
-      rows,
-      cols,
+      rows: rows,
+      cols: cols,
     );
 
 
@@ -623,7 +623,7 @@ class TerminalController {
 
 
 
-    nativeTerminal?.dispose();
+    nativeTerminal?.close();
 
 
 
