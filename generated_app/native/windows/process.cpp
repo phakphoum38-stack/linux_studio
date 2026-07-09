@@ -1,323 +1,165 @@
 #include "process.h"
 
-
-
 #ifdef _WIN32
 
-
-
+#include <windows.h>
 #include <processthreadsapi.h>
 
 
-
-
-
 ProcessManager::ProcessManager()
-
 {
-
     ZeroMemory(
-
         &processInfo,
-
         sizeof(processInfo)
-
     );
 
+    running = false;
 }
-
-
 
 
 
 ProcessManager::~ProcessManager()
-
 {
-
     close();
-
 }
-
-
-
-
 
 
 
 
 
 bool ProcessManager::start(
-
     HPCON hpc,
-
     const wchar_t* command
-
 )
-
 {
 
-
     if(hpc == nullptr)
-
-    {
-
         return false;
-
-    }
-
-
 
 
 
     STARTUPINFOEXW startup{};
 
-
-
     startup.StartupInfo.cb =
-
         sizeof(STARTUPINFOEXW);
 
 
 
-
-
-
-
-
-    SIZE_T attributeSize = 0;
-
-
+    SIZE_T size = 0;
 
 
 
     InitializeProcThreadAttributeList(
-
         nullptr,
-
         1,
-
         0,
-
-        &attributeSize
-
+        &size
     );
 
 
 
-
-
-
-
-
-    auto attributes =
-
+    auto list =
         (LPPROC_THREAD_ATTRIBUTE_LIST)
-
         HeapAlloc(
-
             GetProcessHeap(),
-
             0,
-
-            attributeSize
-
+            size
         );
 
 
-
-
-
-
-
-    if(!attributes)
-
-    {
-
+    if(!list)
         return false;
-
-    }
-
-
-
-
-
 
 
 
     if(!InitializeProcThreadAttributeList(
-
-        attributes,
-
+        list,
         1,
-
         0,
-
-        &attributeSize
-
+        &size
     ))
-
     {
 
         HeapFree(
-
             GetProcessHeap(),
-
             0,
-
-            attributes
-
+            list
         );
-
 
         return false;
 
     }
-
-
-
-
 
 
 
 
     UpdateProcThreadAttribute(
-
-        attributes,
-
+        list,
         0,
-
         PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-
         hpc,
-
         sizeof(HPCON),
-
         nullptr,
-
         nullptr
-
     );
 
 
 
+    startup.lpAttributeList = list;
 
 
 
-
-
-    startup.lpAttributeList =
-
-        attributes;
-
-
-
-
-
-
-
-    wchar_t buffer[256];
-
+    wchar_t cmd[512];
 
 
     wcscpy_s(
-
-        buffer,
-
+        cmd,
         command
-
     );
 
 
 
-
-
-
-
-
-    BOOL result =
-
+    BOOL ok =
         CreateProcessW(
-
             nullptr,
-
-            buffer,
-
+            cmd,
             nullptr,
-
             nullptr,
-
             FALSE,
-
             EXTENDED_STARTUPINFO_PRESENT,
-
             nullptr,
-
             nullptr,
-
             &startup.StartupInfo,
-
             &processInfo
-
         );
 
 
 
 
-
-
-
-
     DeleteProcThreadAttributeList(
-
-        attributes
-
+        list
     );
-
-
-
 
 
     HeapFree(
-
         GetProcessHeap(),
-
         0,
-
-        attributes
-
+        list
     );
 
 
 
-
-
-
-
-
-    if(!result)
-
-    {
-
+    if(!ok)
         return false;
-
-    }
-
-
-
-
 
 
 
     running = true;
 
 
-
     return true;
 
-
 }
-
-
 
 
 
@@ -326,57 +168,22 @@ bool ProcessManager::start(
 
 
 bool ProcessManager::isRunning() const
-
 {
 
     if(!running)
-
-    {
-
         return false;
 
-    }
 
 
-
-
-
-    DWORD result =
-
+    return
         WaitForSingleObject(
-
             processInfo.hProcess,
-
             0
-
-        );
-
-
-
-
-
-    return result == WAIT_TIMEOUT;
+        )
+        ==
+        WAIT_TIMEOUT;
 
 }
-
-
-
-
-
-
-
-
-
-DWORD ProcessManager::getProcessId() const
-
-{
-
-    return processInfo.dwProcessId;
-
-}
-
-
-
 
 
 
@@ -384,67 +191,45 @@ DWORD ProcessManager::getProcessId() const
 
 
 void ProcessManager::close()
-
 {
 
-
     if(processInfo.hProcess)
-
     {
 
         TerminateProcess(
-
             processInfo.hProcess,
-
             0
-
         );
-
 
 
         CloseHandle(
-
             processInfo.hProcess
-
         );
 
 
-
-        processInfo.hProcess = nullptr;
+        processInfo.hProcess=nullptr;
 
     }
-
-
-
 
 
 
     if(processInfo.hThread)
-
     {
 
         CloseHandle(
-
             processInfo.hThread
-
         );
 
 
-
-        processInfo.hThread = nullptr;
+        processInfo.hThread=nullptr;
 
     }
 
 
 
-
-
-
-    running = false;
-
+    running=false;
 
 }
-
 
 
 #endif
