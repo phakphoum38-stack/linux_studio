@@ -1,0 +1,55 @@
+name: Linux Studio macOS Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+
+jobs:
+
+  macos-build:
+
+    runs-on: macos-latest
+
+    defaults:
+      run:
+        working-directory: generated_app
+
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+
+      - name: Flutter Doctor
+        run: flutter doctor -v
+
+
+      - name: Dependencies
+        run: flutter pub get
+
+
+      - name: Analyze
+        run: flutter analyze
+
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+
+      - name: Upload macOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-studio-macos
+          path: generated_app/build/macos/Build/Products/Release/*.app
