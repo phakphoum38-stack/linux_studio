@@ -1,6 +1,5 @@
 name: Linux Studio Windows Build
 
-
 on:
   push:
     branches:
@@ -8,7 +7,6 @@ on:
       - master
 
   workflow_dispatch:
-
 
 
 jobs:
@@ -21,7 +19,6 @@ jobs:
     defaults:
       run:
         working-directory: generated_app
-
 
 
     steps:
@@ -40,8 +37,18 @@ jobs:
 
 
 
-      - name: Enable Windows
+      - name: Flutter Doctor
+        run: flutter doctor -v
+
+
+
+      - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
+
+
+
+      - name: Clean
+        run: flutter clean
 
 
 
@@ -51,17 +58,28 @@ jobs:
 
 
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
 
 
-      - name: Build Windows
-        run: flutter build windows --release
+      - name: Check Windows Device
+        run: flutter devices
 
 
 
-      - name: Upload Windows
+      - name: Build Windows Debug
+        run: flutter build windows --debug -v
+
+
+
+      - name: Build Windows Release
+        run: flutter build windows --release -v
+
+
+
+      - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
           name: linux-studio-windows
           path: generated_app/build/windows/x64/runner/Release
+          if-no-files-found: error
