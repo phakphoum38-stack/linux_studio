@@ -71,13 +71,11 @@ class SshTerminalBackend implements TerminalBackend {
 
   @override
   Future<void> start() async {
-    // connect() เป็นผู้สร้าง session
+    // connect() จะเป็นผู้สร้าง session
   }
 
   @override
-  Future<void> write(
-    String text,
-  ) async {
+  Future<void> write(String text) async {
     _session?.write(
       Uint8List.fromList(
         utf8.encode(text),
@@ -105,7 +103,7 @@ class SshTerminalBackend implements TerminalBackend {
 
   @override
   Future<void> stop() async {
-    await _session?.close();
+    _session?.close(); // ไม่ต้อง await
 
     _client?.close();
 
