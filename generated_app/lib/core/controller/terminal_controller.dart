@@ -15,7 +15,6 @@ import '../clipboard/terminal_clipboard.dart';
 import '../terminal/terminal_size.dart';
 
 
-
 class TerminalController {
 
 
@@ -67,6 +66,10 @@ class TerminalController {
 
 
 
+  bool get isRunning => _running;
+
+
+
 
 
 
@@ -80,27 +83,21 @@ class TerminalController {
 
     NativeTerminal? native,
 
-  })
+  }) :
 
-      :
+      engine =
+          engine ??
+          TerminalEngine(
+            backend: backend,
+            buffer: buffer,
+          ),
 
-        engine =
-            engine ??
-            TerminalEngine(
-              backend: backend,
-              buffer: buffer,
-            ),
-
-
-        nativeTerminal = native
-
-  {
+      nativeTerminal = native {
 
 
     this.buffer =
         buffer ??
         this.engine.buffer;
-
 
 
 
@@ -132,13 +129,11 @@ class TerminalController {
   async {
 
 
-
     if(screen != null){
 
       buffer = screen;
 
     }
-
 
 
 
@@ -150,14 +145,12 @@ class TerminalController {
 
 
 
-
     engine.onUpdate =
         (){
 
       refresh();
 
     };
-
 
 
 
@@ -203,6 +196,14 @@ class TerminalController {
           (_) {
 
 
+            if(!_running){
+
+              return;
+
+            }
+
+
+
             final output =
                 nativeTerminal!.read();
 
@@ -231,16 +232,9 @@ class TerminalController {
 
 
 
-  // =========================
-  // Input
-  // =========================
-
-
 
   void send(
-
     String text,
-
   ){
 
 
@@ -252,11 +246,9 @@ class TerminalController {
 
 
 
-
     engine.write(
       text,
     );
-
 
 
     nativeTerminal?.write(
@@ -272,10 +264,9 @@ class TerminalController {
 
 
 
+
   void write(
-
     String text,
-
   ){
 
     send(
@@ -291,11 +282,8 @@ class TerminalController {
 
 
 
-
   void sendKey(
-
     String key,
-
   ){
 
     keyboard.sendKey(
@@ -312,23 +300,14 @@ class TerminalController {
 
 
 
-  // =========================
-  // Clipboard
-  // =========================
-
-
-
   void paste(
-
     String text,
-
   ){
 
 
     input.add(
       text,
     );
-
 
 
     final data =
@@ -346,6 +325,7 @@ class TerminalController {
 
 
   }
+
 
 
 
@@ -410,18 +390,9 @@ class TerminalController {
 
 
 
-  // =========================
-  // Selection
-  // =========================
-
-
-
   void startSelection(
-
     int row,
-
     int col,
-
   ){
 
 
@@ -443,12 +414,10 @@ class TerminalController {
 
 
 
+
   void updateSelection(
-
     int row,
-
     int col,
-
   ){
 
 
@@ -469,17 +438,20 @@ class TerminalController {
 
 
 
+
+
   void endSelection(){
 
 
     selection.end();
 
 
-
     refresh();
 
 
   }
+
+
 
 
 
@@ -493,7 +465,6 @@ class TerminalController {
     selection.clear();
 
 
-
     refresh();
 
 
@@ -507,18 +478,9 @@ class TerminalController {
 
 
 
-  // =========================
-  // Resize
-  // =========================
-
-
-
   void resize(
-
     int cols,
-
     int rows,
-
   ){
 
 
@@ -533,8 +495,6 @@ class TerminalController {
 
 
 
-
-
     if(
       cols == _lastCols &&
       rows == _lastRows
@@ -546,12 +506,9 @@ class TerminalController {
 
 
 
-
     _lastCols = cols;
 
     _lastRows = rows;
-
-
 
 
 
@@ -563,8 +520,6 @@ class TerminalController {
 
 
 
-
-
     engine.resize(
       cols,
       rows,
@@ -573,8 +528,8 @@ class TerminalController {
 
 
     nativeTerminal?.resize(
-      rows: rows,
       cols: cols,
+      rows: rows,
     );
 
 
@@ -611,6 +566,14 @@ class TerminalController {
   async {
 
 
+    if(!_running){
+
+      return;
+
+    }
+
+
+
     _running = false;
 
 
@@ -638,12 +601,13 @@ class TerminalController {
 
 
 
+
+
   void dispose(){
 
     stop();
 
   }
-
 
 
 }
