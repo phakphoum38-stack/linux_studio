@@ -117,9 +117,9 @@ TERMINAL_API void* terminal_create(
 
     if(
 
-        !ctx->process.start(
-
-            ctx->conpty.getHandle()
+        ctx->process.start(
+            ctx->conpty.getHandle(),
+            L"C:\\Windows\\System32\\cmd.exe"
 
         )
 
