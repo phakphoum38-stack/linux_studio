@@ -1,173 +1,110 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'native_terminal.dart';
 import 'terminal_backend.dart';
 
-import 'native_terminal.dart';
-
-
-
-class ConPTYBackend
-    implements TerminalBackend {
-
+class ConPTYBackend implements TerminalBackend {
+  final NativeTerminal terminal = NativeTerminal();
 
   final StreamController<String> _outputController =
-    StreamController<String>.broadcast();
+      StreamController<String>.broadcast();
 
-  
   final StreamController<String> _errorController =
-    StreamController<String>.broadcast();
+      StreamController<String>.broadcast();
 
-
-  final NativeTerminal terminal =
-      NativeTerminal();
-
-
-
-
+  Timer? _reader;
 
   bool started = false;
 
-
-
-
-
+  @override
+  Stream<String> get output => _outputController.stream;
 
   @override
-  Future<void> start()
+  Stream<String> get errors => _errorController.stream;
 
-  async {
-
-
-    if(!Platform.isWindows){
-
+  @override
+  Future<void> start() async {
+    if (!Platform.isWindows) {
       throw UnsupportedError(
         'ConPTY only works on Windows',
       );
-
     }
 
+    started = terminal.open();
 
+    if (!started) {
+      _errorController.add(
+        'Failed to create ConPTY session.',
+      );
+      return;
+    }
 
-    started =
-        terminal.open(
-          rows: 24,
-          cols: 80,
-        );
+    _reader = Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) {
+        if (!started) {
+          return;
+        }
 
+        try {
+          final data = terminal.read();
 
+          if (data.isNotEmpty) {
+            _outputController.add(data);
+          }
+        } catch (e) {
+          _errorController.add(
+            e.toString(),
+          );
+        }
+      },
+    );
   }
-
-
-
-
-
-
 
   @override
   Future<void> write(String text) async {
-    _terminal.write(text);
-  }
-
-
-    if(!started){
-
+    if (!started) {
       return;
-
     }
 
-
-
-    terminal.write(
-      data,
-    );
-
-
+    terminal.write(text);
   }
-
-
-
-
-
-
-
 
   @override
-  String read(){
-
-
-    if(!started){
-
+  String read() {
+    if (!started) {
       return '';
-
     }
-
-
 
     return terminal.read();
-
-
   }
 
-
-
-
-
-
-
   @override
-  Future<void> resize(int cols, int rows) async {
-    _terminal.resize(
+  Future<void> resize(
+    int cols,
+    int rows,
+  ) async {
+    if (!started) {
+      return;
+    }
+
+    terminal.resize(
       cols: cols,
       rows: rows,
     );
   }
 
-
-    if(!started){
-
-      return;
-
-    }
-
-
-
-    terminal.resize(
-      rows,
-      cols,
-    );
-
-
-  }
-
-
-
-
-
-
-
-
   @override
-  Future<void> stop()
+  Future<void> stop() async {
+    started = false;
 
-  async {
-
+    _reader?.cancel();
+    _reader = null;
 
     terminal.close();
 
-
-
-    started = false;
-
-
+    await _outputController.close();
+    await _errorController.close();
   }
-
-  @override
-  Stream<String> get output =>
-      _outputController.stream;
-
-  @override
-  Stream<String> get errors =>
-      _errorController.stream;
-
-
 }
