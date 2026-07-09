@@ -7,17 +7,26 @@ on:
       - master
   workflow_dispatch:
 
+
 jobs:
+
   build-ios:
+
     runs-on: macos-latest
+
 
     defaults:
       run:
         working-directory: generated_app
 
+
     steps:
+
+
       - name: Checkout
         uses: actions/checkout@v4
+
+
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -25,27 +34,90 @@ jobs:
           channel: stable
           cache: true
 
+
+
       - name: Flutter Doctor
         run: flutter doctor -v
+
+
 
       - name: Install Dependencies
         run: flutter pub get
 
+
+
       - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+
 
       - name: Enable iOS
         run: flutter config --enable-ios
 
+
+
       - name: Precache iOS
         run: flutter precache --ios
+
+
+
+
+      # ==========================
+      # Simulator Build
+      # ==========================
 
       - name: Build iOS Simulator
         run: flutter build ios --simulator --debug
 
-      - name: Upload Runner.app
+
+
+      - name: Upload Simulator App
         uses: actions/upload-artifact@v4
         with:
           name: ios-simulator-build
           path: generated_app/build/ios/iphonesimulator/Runner.app
+          if-no-files-found: error
+
+
+
+
+
+      # ==========================
+      # Device Release Build
+      # ==========================
+
+      - name: Build iOS Release Device
+        run: flutter build ios --release --no-codesign
+
+
+
+      - name: Upload Release Runner.app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-device
+          path: generated_app/build/ios/iphoneos/Runner.app
+          if-no-files-found: error
+
+
+
+
+
+
+      # ==========================
+      # Create IPA
+      # ==========================
+
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -r LinuxStudio.ipa Payload
+
+
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LinuxStudio-IPA
+          path: generated_app/LinuxStudio.ipa
           if-no-files-found: error
