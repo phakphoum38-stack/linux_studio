@@ -5,21 +5,19 @@
 
 
 PipeManager::PipeManager()
-
 {
 
-    inputRead = NULL;
-    inputWrite = NULL;
+    inputRead = nullptr;
+    inputWrite = nullptr;
 
-    outputRead = NULL;
-    outputWrite = NULL;
+    outputRead = nullptr;
+    outputWrite = nullptr;
 
 }
 
 
 
 PipeManager::~PipeManager()
-
 {
 
     close();
@@ -31,19 +29,14 @@ PipeManager::~PipeManager()
 
 
 bool PipeManager::createPipes()
-
 {
 
 
-    SECURITY_ATTRIBUTES sa;
+    SECURITY_ATTRIBUTES sa{};
 
 
     sa.nLength =
-        sizeof(SECURITY_ATTRIBUTES);
-
-
-    sa.lpSecurityDescriptor =
-        NULL;
+        sizeof(sa);
 
 
     sa.bInheritHandle =
@@ -51,25 +44,24 @@ bool PipeManager::createPipes()
 
 
 
-    // Input Pipe
+    //
+    // ConPTY input
+    //
 
-    if(
-        !CreatePipe(
-            &inputRead,
-            &inputWrite,
-            &sa,
-            0
-        )
-    ){
-
+    if(!CreatePipe(
+        &inputRead,
+        &inputWrite,
+        &sa,
+        0))
+    {
         return false;
-
     }
 
 
 
-    // Prevent child process
-    // from inheriting write side
+    //
+    // Parent writes
+    //
 
     SetHandleInformation(
         inputWrite,
@@ -80,28 +72,27 @@ bool PipeManager::createPipes()
 
 
 
+    //
+    // ConPTY output
+    //
 
-    // Output Pipe
-
-
-    if(
-        !CreatePipe(
-            &outputRead,
-            &outputWrite,
-            &sa,
-            0
-        )
-    ){
+    if(!CreatePipe(
+        &outputRead,
+        &outputWrite,
+        &sa,
+        0))
+    {
 
         close();
 
         return false;
-
     }
 
 
 
-    // Prevent parent from inheriting read side
+    //
+    // Parent reads
+    //
 
     SetHandleInformation(
         outputRead,
@@ -119,200 +110,67 @@ bool PipeManager::createPipes()
 
 
 
-
-
-bool PipeManager::read(
-    char* buffer,
-    int size
-)
-
+HANDLE PipeManager::getInputRead() const
 {
-
-
-    if(
-        outputRead == NULL
-    ){
-
-        return false;
-
-    }
-
-
-
-    DWORD bytesRead = 0;
-
-
-
-    BOOL result =
-        ReadFile(
-            outputRead,
-            buffer,
-            size,
-            &bytesRead,
-            NULL
-        );
-
-
-
-    return result &&
-        bytesRead > 0;
-
-
+    return inputRead;
 }
 
 
 
-
-
-
-
-bool PipeManager::write(
-    const char* data,
-    int len
-)
-
+HANDLE PipeManager::getInputWrite() const
 {
-
-
-    if(
-        inputWrite == NULL
-    ){
-
-        return false;
-
-    }
-
-
-
-    DWORD bytesWritten = 0;
-
-
-
-    BOOL result =
-        WriteFile(
-            inputWrite,
-            data,
-            len,
-            &bytesWritten,
-            NULL
-        );
-
-
-
-    return result &&
-        bytesWritten == len;
-
-
+    return inputWrite;
 }
 
 
 
+HANDLE PipeManager::getOutputRead() const
+{
+    return outputRead;
+}
+
+
+
+HANDLE PipeManager::getOutputWrite() const
+{
+    return outputWrite;
+}
 
 
 
 
 
 void PipeManager::close()
-
 {
 
 
     if(inputRead)
     {
-
-        CloseHandle(
-            inputRead
-        );
-
-        inputRead = NULL;
-
+        CloseHandle(inputRead);
+        inputRead=nullptr;
     }
-
 
 
     if(inputWrite)
     {
-
-        CloseHandle(
-            inputWrite
-        );
-
-        inputWrite = NULL;
-
+        CloseHandle(inputWrite);
+        inputWrite=nullptr;
     }
-
-
 
 
     if(outputRead)
     {
-
-        CloseHandle(
-            outputRead
-        );
-
-        outputRead = NULL;
-
+        CloseHandle(outputRead);
+        outputRead=nullptr;
     }
-
-
 
 
     if(outputWrite)
     {
-
-        CloseHandle(
-            outputWrite
-        );
-
-        outputWrite = NULL;
-
+        CloseHandle(outputWrite);
+        outputWrite=nullptr;
     }
 
-
-}
-
-
-
-
-
-
-
-HANDLE PipeManager::getInputRead() const
-
-{
-
-    return inputRead;
-
-}
-
-
-
-HANDLE PipeManager::getInputWrite() const
-
-{
-
-    return inputWrite;
-
-}
-
-
-
-HANDLE PipeManager::getOutputRead() const
-
-{
-
-    return outputRead;
-
-}
-
-
-
-HANDLE PipeManager::getOutputWrite() const
-
-{
-
-    return outputWrite;
 
 }
 
