@@ -1,0 +1,75 @@
+name: Linux Studio Linux Build
+
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+
+
+jobs:
+
+
+  linux-build:
+
+    runs-on: ubuntu-latest
+
+
+    defaults:
+      run:
+        working-directory: generated_app
+
+
+
+    steps:
+
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+
+      - name: Install Linux Packages
+        run: |
+          sudo apt update
+          sudo apt install -y clang cmake ninja-build pkg-config libgtk-3-dev
+
+
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+
+
+      - name: Enable Linux
+        run: flutter config --enable-linux-desktop
+
+
+
+      - name: Dependencies
+        run: flutter pub get
+
+
+
+      - name: Analyze
+        run: flutter analyze
+
+
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-studio-linux
+          path: generated_app/build/linux/x64/release/bundle
