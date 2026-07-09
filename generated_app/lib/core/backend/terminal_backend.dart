@@ -1,27 +1,25 @@
 import 'dart:async';
 
 abstract class TerminalBackend {
-  /// Output stream
+  /// Output stream from terminal.
   Stream<String> get output;
 
-  /// Error stream
+  /// Error stream.
   Stream<String> get errors;
 
-  /// Start terminal backend
+  /// Start backend.
   Future<void> start();
 
-  /// Stop terminal backend
+  /// Stop backend.
   Future<void> stop();
 
-  /// Write text to terminal
-  Future<void> write(
-    String text,
-  );
+  /// Send text to terminal.
+  Future<void> write(String text);
 
-  /// Read buffered output (optional)
+  /// Read buffered data immediately.
   String read();
 
-  /// Resize terminal
+  /// Resize terminal.
   Future<void> resize(
     int cols,
     int rows,
