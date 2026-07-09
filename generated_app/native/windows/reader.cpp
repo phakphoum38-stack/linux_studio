@@ -1,61 +1,34 @@
 #include "reader.h"
 
-
 #ifdef _WIN32
 
 
-
 Reader::Reader()
-
 {
-
-    pipe = nullptr;
-
-    running = false;
-
+    pipe=nullptr;
+    running=false;
 }
-
-
 
 
 
 Reader::~Reader()
-
 {
-
     stop();
-
 }
-
-
-
-
-
-
 
 
 
 void Reader::attach(
-
     PipeManager* manager
-
 )
-
 {
 
-
-    pipe = manager;
-
+    pipe=manager;
 
     running =
-
-        pipe != nullptr;
-
+        pipe!=nullptr;
 
 }
-
-
-
 
 
 
@@ -63,104 +36,68 @@ void Reader::attach(
 
 
 int Reader::read(
-
     char* buffer,
-
     int size
-
 )
-
 {
+
+    if(
+        !running ||
+        !pipe ||
+        !buffer
+    )
+        return 0;
+
+
+
+    DWORD available=0;
 
 
     if(
-
-        !running ||
-
-        pipe == nullptr ||
-
-        buffer == nullptr
-
-    )
-
-    {
-
-        return -1;
-
-    }
-
-
-
-
-
-
-    DWORD bytesRead = 0;
-
-
-
-
-
-    BOOL result =
-
-        ReadFile(
-
+        !PeekNamedPipe(
             pipe->getOutputRead(),
-
-            buffer,
-
-            size,
-
-            &bytesRead,
-
+            nullptr,
+            0,
+            nullptr,
+            &available,
             nullptr
-
-        );
-
-
-
-
-
-
-
-
-    if(!result)
-
+        )
+    )
     {
-
-        return -1;
-
+        return 0;
     }
 
 
 
+    if(available==0)
+        return 0;
 
 
-    return (
 
-        int
 
-    )bytesRead;
+    DWORD read=0;
 
+
+
+    if(
+        ReadFile(
+            pipe->getOutputRead(),
+            buffer,
+            size,
+            &read,
+            nullptr
+        )
+    )
+    {
+
+        return (int)read;
+
+    }
+
+
+    return 0;
 
 }
-
-
-
-
-
-
-
-
-
-bool Reader::isRunning() const
-
-{
-
-    return running;
-
-}
-
-
 
 
 
@@ -169,12 +106,11 @@ bool Reader::isRunning() const
 
 
 void Reader::stop()
-
 {
 
-    running = false;
+    running=false;
 
-    pipe = nullptr;
+    pipe=nullptr;
 
 }
 
