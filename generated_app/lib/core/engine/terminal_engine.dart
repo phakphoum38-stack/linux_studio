@@ -1,103 +1,226 @@
-import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:xterm/xterm.dart';
 
-import '../backend/pty_terminal_backend.dart';
-import '../backend/terminal_backend.dart';
+import '../core/controller/terminal_controller.dart' as app;
 
-import 'ansi_csi_parser.dart';
-import 'screen_buffer.dart';
-import 'vt100_state_machine.dart';
 
-class TerminalEngine {
-  TerminalEngine({
-    TerminalBackend? backend,
-    ScreenBuffer? buffer,
-  })  : backend = backend ?? PtyTerminalBackend(),
-        buffer = buffer ?? ScreenBuffer() {
-    vt100 = VT100StateMachine(this.buffer);
-  }
 
-  final TerminalBackend backend;
+class TerminalScreen extends StatefulWidget {
 
-  final ScreenBuffer buffer;
+  const TerminalScreen({
+    super.key,
+  });
 
-  final AnsiCsiParser parser =
-      AnsiCsiParser();
 
-  late final VT100StateMachine vt100;
+  @override
+  State<TerminalScreen> createState() =>
+      _TerminalScreenState();
 
-  StreamSubscription<String>? _outputSub;
+}
 
-  StreamSubscription<String>? _errorSub;
 
-  Function()? onUpdate;
 
-  Future<void> start() async {
-    _outputSub =
-        backend.output.listen(
-      _handleOutput,
-    );
+class _TerminalScreenState
+    extends State<TerminalScreen> {
 
-    _errorSub =
-        backend.errors.listen(
-      (error) {
-        buffer.writeText(
-          '\nERROR: $error\n',
+
+  late final Terminal terminal;
+
+  late final app.TerminalController controller;
+
+
+  bool _disposed = false;
+
+
+
+  @override
+  void initState() {
+
+    super.initState();
+
+
+    terminal = Terminal(
+      maxLines: 10000,
+
+      onResize: (
+        width,
+        height,
+      ){
+
+        controller.resize(
+          width,
+          height,
         );
 
-        onUpdate?.call();
       },
+
     );
 
-    await backend.start();
+
+
+    controller =
+        app.TerminalController();
+
+
+
+    terminal.onOutput =
+        (data){
+
+      controller.write(
+        data,
+      );
+
+    };
+
+
+
+    controller.onUpdate =
+        (){
+
+      if(!_disposed){
+
+        _renderBuffer();
+
+      }
+
+    };
+
+
+
+    _start();
+
   }
 
-  void _handleOutput(
-    String data,
-  ) {
-    final events =
-        parser.parse(
-      data,
+
+
+
+
+
+  Future<void> _start()
+  async {
+
+
+    await controller.start();
+
+
+    terminal.write(
+      'Linux Studio Terminal\r\n',
     );
 
-    for (final event in events) {
-      vt100.handle(
-        event,
-      );
+
+    terminal.write(
+      'Starting shell...\r\n\r\n',
+    );
+
+
+    _renderBuffer();
+
+  }
+
+
+
+
+
+
+
+  void _renderBuffer(){
+
+    if(_disposed){
+
+      return;
+
     }
 
-    onUpdate?.call();
-  }
 
-  Future<void> write(
-    String text,
-  ) async {
-    await backend.write(
-      text,
+
+    final lines =
+        controller.buffer.lines;
+
+
+
+    terminal.write(
+      '\x1B[2J',
     );
-  }
 
-  Future<void> sendKey(
-    String key,
-  ) async {
-    await write(
-      key,
+
+    terminal.write(
+      '\x1B[H',
     );
+
+
+
+    for(final line in lines){
+
+      terminal.write(
+        '$line\r\n',
+      );
+
+    }
+
+
   }
 
-  Future<void> resize(
-    int cols,
-    int rows,
-  ) async {
-    await backend.resize(
-      cols,
-      rows,
+
+
+
+
+
+
+
+  @override
+  Widget build(
+    BuildContext context,
+  ){
+
+    return Scaffold(
+
+      appBar:
+        AppBar(
+
+          title:
+            const Text(
+              'Linux Studio Terminal',
+            ),
+
+        ),
+
+
+
+      body:
+
+        TerminalView(
+
+          terminal,
+
+          autofocus:true,
+
+          backgroundOpacity:1,
+
+        ),
+
     );
+
   }
 
-  Future<void> kill() async {
-    await _outputSub?.cancel();
-    await _errorSub?.cancel();
 
-    await backend.stop();
+
+
+
+
+
+
+  @override
+  void dispose(){
+
+    _disposed = true;
+
+
+    controller.stop();
+
+
+    super.dispose();
+
   }
+
+
 }
