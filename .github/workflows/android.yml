@@ -1,0 +1,84 @@
+name: Linux Studio Android Build
+
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+
+
+jobs:
+
+
+  android-build:
+
+
+    runs-on: ubuntu-latest
+
+
+
+    defaults:
+      run:
+        working-directory: generated_app
+
+
+
+    steps:
+
+
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+
+
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+
+
+      - name: Dependencies
+        run: flutter pub get
+
+
+
+      - name: Analyze
+        run: flutter analyze
+
+
+
+      - name: Build APK
+        run: flutter build apk --release
+
+
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-studio-apk
+          path: generated_app/build/app/outputs/flutter-apk/app-release.apk
+
+
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-studio-aab
+          path: generated_app/build/app/outputs/bundle/release/app-release.aab
