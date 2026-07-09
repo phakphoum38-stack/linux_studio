@@ -18,10 +18,13 @@ ProcessManager::ProcessManager()
 
 
 
+
 ProcessManager::~ProcessManager()
 {
     close();
 }
+
+
 
 
 
@@ -50,7 +53,10 @@ bool ProcessManager::start(
 
 
 
+
+
     STARTUPINFOEXW startup{};
+
 
 
     startup.StartupInfo.cb =
@@ -59,7 +65,9 @@ bool ProcessManager::start(
 
 
 
-    SIZE_T attributeSize = 0;
+
+
+    SIZE_T size = 0;
 
 
 
@@ -67,24 +75,28 @@ bool ProcessManager::start(
         nullptr,
         1,
         0,
-        &attributeSize
+        &size
     );
 
 
 
 
-    auto attributes =
+
+
+    auto attributeList =
         reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(
             HeapAlloc(
                 GetProcessHeap(),
                 0,
-                attributeSize
+                size
             )
         );
 
 
 
-    if(!attributes)
+
+
+    if(attributeList == nullptr)
     {
         return false;
     }
@@ -93,18 +105,22 @@ bool ProcessManager::start(
 
 
 
-    if(!InitializeProcThreadAttributeList(
-        attributes,
-        1,
-        0,
-        &attributeSize
-    ))
+
+
+    if(
+        !InitializeProcThreadAttributeList(
+            attributeList,
+            1,
+            0,
+            &size
+        )
+    )
     {
 
         HeapFree(
             GetProcessHeap(),
             0,
-            attributes
+            attributeList
         );
 
 
@@ -118,34 +134,43 @@ bool ProcessManager::start(
 
 
 
-    if(!UpdateProcThreadAttribute(
+    BOOL attributeResult =
+        UpdateProcThreadAttribute(
 
-        attributes,
+            attributeList,
 
-        0,
+            0,
 
-        PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+            PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
 
-        hpc,
+            hpc,
 
-        sizeof(HPCON),
+            sizeof(HPCON),
 
-        nullptr,
+            nullptr,
 
-        nullptr
+            nullptr
 
-    ))
+        );
+
+
+
+
+
+
+
+    if(!attributeResult)
     {
 
         DeleteProcThreadAttributeList(
-            attributes
+            attributeList
         );
 
 
         HeapFree(
             GetProcessHeap(),
             0,
-            attributes
+            attributeList
         );
 
 
@@ -159,19 +184,22 @@ bool ProcessManager::start(
 
 
     startup.lpAttributeList =
-        attributes;
+        attributeList;
 
 
 
 
 
-    wchar_t cmdLine[512];
+
+
+
+    wchar_t cmdLine[512]{};
+
 
 
 
     wcscpy_s(
         cmdLine,
-        512,
         command
     );
 
@@ -181,20 +209,23 @@ bool ProcessManager::start(
 
 
 
-    BOOL result =
+
+    BOOL created =
         CreateProcessW(
 
             nullptr,
+
 
             cmdLine,
 
 
             nullptr,
 
+
             nullptr,
 
 
-            TRUE,
+            FALSE,
 
 
             EXTENDED_STARTUPINFO_PRESENT |
@@ -220,8 +251,10 @@ bool ProcessManager::start(
 
 
 
+
+
     DeleteProcThreadAttributeList(
-        attributes
+        attributeList
     );
 
 
@@ -229,7 +262,7 @@ bool ProcessManager::start(
     HeapFree(
         GetProcessHeap(),
         0,
-        attributes
+        attributeList
     );
 
 
@@ -238,9 +271,12 @@ bool ProcessManager::start(
 
 
 
-    if(!result)
+
+    if(!created)
     {
+
         return false;
+
     }
 
 
@@ -301,7 +337,6 @@ void ProcessManager::close()
     if(processInfo.hProcess)
     {
 
-
         TerminateProcess(
             processInfo.hProcess,
             0
@@ -320,10 +355,8 @@ void ProcessManager::close()
         );
 
 
-
         processInfo.hProcess =
             nullptr;
-
 
     }
 
@@ -335,7 +368,6 @@ void ProcessManager::close()
     if(processInfo.hThread)
     {
 
-
         CloseHandle(
             processInfo.hThread
         );
@@ -344,8 +376,8 @@ void ProcessManager::close()
         processInfo.hThread =
             nullptr;
 
-
     }
+
 
 
 
