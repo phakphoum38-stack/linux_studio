@@ -1,0 +1,67 @@
+name: Linux Studio Windows Build
+
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+
+
+jobs:
+
+  windows-build:
+
+    runs-on: windows-latest
+
+
+    defaults:
+      run:
+        working-directory: generated_app
+
+
+
+    steps:
+
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+
+
+      - name: Enable Windows
+        run: flutter config --enable-windows-desktop
+
+
+
+      - name: Dependencies
+        run: flutter pub get
+
+
+
+      - name: Analyze
+        run: flutter analyze
+
+
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+
+
+      - name: Upload Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-studio-windows
+          path: generated_app/build/windows/x64/runner/Release
