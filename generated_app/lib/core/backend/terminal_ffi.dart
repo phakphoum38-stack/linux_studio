@@ -3,114 +3,216 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
-typedef _TerminalCreateNative = Pointer<Void> Function(
+
+// ==========================
+// Native Function Definitions
+// ==========================
+
+
+typedef TerminalCreateNative = Pointer<Void> Function(
   Int32 rows,
   Int32 cols,
 );
 
-typedef _TerminalCreate = Pointer<Void> Function(
+
+typedef TerminalCreate = Pointer<Void> Function(
   int rows,
   int cols,
 );
 
-typedef _TerminalWriteNative = Uint8 Function(
+
+
+typedef TerminalWriteNative = Uint8 Function(
   Pointer<Void> handle,
   Pointer<Utf8> data,
   Int32 length,
 );
 
-typedef _TerminalWrite = int Function(
+
+typedef TerminalWrite = int Function(
   Pointer<Void> handle,
   Pointer<Utf8> data,
   int length,
 );
 
-typedef _TerminalReadNative = Int32 Function(
+
+
+typedef TerminalReadNative = Int32 Function(
   Pointer<Void> handle,
   Pointer<Uint8> buffer,
   Int32 size,
 );
 
-typedef _TerminalRead = int Function(
+
+typedef TerminalRead = int Function(
   Pointer<Void> handle,
   Pointer<Uint8> buffer,
   int size,
 );
 
-typedef _TerminalResizeNative = Uint8 Function(
+
+
+typedef TerminalResizeNative = Uint8 Function(
   Pointer<Void> handle,
   Int32 rows,
   Int32 cols,
 );
 
-typedef _TerminalResize = int Function(
+
+typedef TerminalResize = int Function(
   Pointer<Void> handle,
   int rows,
   int cols,
 );
 
-typedef _TerminalCloseNative = Void Function(
+
+
+typedef TerminalCloseNative = Void Function(
   Pointer<Void> handle,
 );
 
-typedef _TerminalClose = void Function(
+
+typedef TerminalClose = void Function(
   Pointer<Void> handle,
 );
+
+
+
+
 
 class TerminalFFI {
-  TerminalFFI._() {
-    _load();
-  }
 
-  static final TerminalFFI instance = TerminalFFI._();
 
-  late final DynamicLibrary _library;
+  TerminalFFI._();
 
-  late final _TerminalCreate create;
-  late final _TerminalWrite write;
-  late final _TerminalRead read;
-  late final _TerminalResize resize;
-  late final _TerminalClose close;
 
-  void _load() {
-    if (!Platform.isWindows) {
-      throw UnsupportedError(
-        'ConPTY backend is only available on Windows.',
-      );
+
+  static final TerminalFFI instance =
+      TerminalFFI._();
+
+
+
+
+  DynamicLibrary? _library;
+
+
+
+  late final TerminalCreate create;
+
+  late final TerminalWrite write;
+
+  late final TerminalRead read;
+
+  late final TerminalResize resize;
+
+  late final TerminalClose close;
+
+
+
+
+
+  bool _loaded = false;
+
+
+
+  bool get isLoaded =>
+      _loaded;
+
+
+
+
+
+  void load(){
+
+
+    if(_loaded){
+
+      return;
+
     }
 
-    _library = DynamicLibrary.open(
-      'terminal_api.dll',
-    );
 
-    create = _library.lookupFunction<
-        _TerminalCreateNative,
-        _TerminalCreate>(
-      'terminal_create',
-    );
 
-    write = _library.lookupFunction<
-        _TerminalWriteNative,
-        _TerminalWrite>(
-      'terminal_write',
-    );
+    if(!Platform.isWindows){
 
-    read = _library.lookupFunction<
-        _TerminalReadNative,
-        _TerminalRead>(
-      'terminal_read',
-    );
+      throw UnsupportedError(
+        'TerminalFFI only supports Windows ConPTY.',
+      );
 
-    resize = _library.lookupFunction<
-        _TerminalResizeNative,
-        _TerminalResize>(
-      'terminal_resize',
-    );
+    }
 
-    close = _library.lookupFunction<
-        _TerminalCloseNative,
-        _TerminalClose>(
-      'terminal_close',
-    );
+
+
+    _library =
+        DynamicLibrary.open(
+          'terminal_api.dll',
+        );
+
+
+
+
+    create =
+        _library!.lookupFunction<
+          TerminalCreateNative,
+          TerminalCreate
+        >(
+          'terminal_create',
+        );
+
+
+
+
+    write =
+        _library!.lookupFunction<
+          TerminalWriteNative,
+          TerminalWrite
+        >(
+          'terminal_write',
+        );
+
+
+
+
+    read =
+        _library!.lookupFunction<
+          TerminalReadNative,
+          TerminalRead
+        >(
+          'terminal_read',
+        );
+
+
+
+
+    resize =
+        _library!.lookupFunction<
+          TerminalResizeNative,
+          TerminalResize
+        >(
+          'terminal_resize',
+        );
+
+
+
+
+    close =
+        _library!.lookupFunction<
+          TerminalCloseNative,
+          TerminalClose
+        >(
+          'terminal_close',
+        );
+
+
+
+    _loaded = true;
+
+
   }
+
+
+
+
+
+
 }
