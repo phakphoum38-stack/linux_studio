@@ -4,7 +4,7 @@ import '../engine/terminal_engine.dart';
 import '../engine/screen_buffer.dart';
 
 import '../backend/terminal_backend.dart';
-import '../backend/pty_terminal_backend.dart';
+import '../backend/backend_factory.dart';
 
 import '../engine/input_pipeline.dart';
 import '../input/keyboard_pipeline.dart';
@@ -17,27 +17,40 @@ import '../terminal/terminal_size.dart';
 
 
 
+
+
 class TerminalController {
 
 
+
   late final TerminalEngine engine;
+
 
 
   late ScreenBuffer buffer;
 
 
 
+
+
   final InputPipeline input =
+
       InputPipeline();
 
 
 
+
+
   final KeyboardPipeline keyboard =
+
       KeyboardPipeline();
 
 
 
+
+
   final SelectionEngine selection =
+
       SelectionEngine();
 
 
@@ -48,7 +61,11 @@ class TerminalController {
 
 
 
+
+
   TerminalSize? terminalSize;
+
+
 
 
 
@@ -58,11 +75,14 @@ class TerminalController {
 
 
 
+
+
   bool _running = false;
 
 
 
   bool get isRunning =>
+
       _running;
 
 
@@ -86,6 +106,7 @@ class TerminalController {
   {
 
 
+
     this.engine =
 
         engine ??
@@ -93,12 +114,16 @@ class TerminalController {
         TerminalEngine(
 
           backend:
+
               backend ??
-              PtyTerminalBackend(),
+
+              BackendFactory.create(),
 
 
           buffer:
+
               buffer ??
+
               ScreenBuffer(),
 
         );
@@ -106,8 +131,12 @@ class TerminalController {
 
 
 
+
     this.buffer =
+
         this.engine.buffer;
+
+
 
 
 
@@ -140,6 +169,21 @@ class TerminalController {
   async {
 
 
+
+    if(_running)
+
+    {
+
+      return;
+
+    }
+
+
+
+
+
+
+
     engine.onUpdate =
 
         ()
@@ -154,7 +198,11 @@ class TerminalController {
 
 
 
+
+
     await engine.start();
+
+
 
 
 
@@ -181,8 +229,11 @@ class TerminalController {
 
 
     if(!_running)
+
     {
+
       return;
+
     }
 
 
@@ -232,9 +283,13 @@ class TerminalController {
 
   {
 
+
     keyboard.sendKey(
+
       key,
+
     );
+
 
   }
 
@@ -255,7 +310,12 @@ class TerminalController {
   {
 
 
-    input.add(text);
+    input.add(
+
+      text,
+
+    );
+
 
 
 
@@ -265,11 +325,17 @@ class TerminalController {
 
 
 
+
+
     if(data.isNotEmpty)
 
     {
 
-      write(data);
+      write(
+
+        data,
+
+      );
 
     }
 
@@ -292,6 +358,8 @@ class TerminalController {
     final text =
 
         await TerminalClipboard.paste();
+
+
 
 
 
@@ -329,6 +397,8 @@ class TerminalController {
 
 
 
+
+
     await TerminalClipboard.copy(
 
       text,
@@ -356,6 +426,7 @@ class TerminalController {
 
   {
 
+
     selection.start(
 
       row,
@@ -365,7 +436,9 @@ class TerminalController {
     );
 
 
+
     refresh();
+
 
   }
 
@@ -387,6 +460,7 @@ class TerminalController {
 
   {
 
+
     selection.update(
 
       row,
@@ -396,7 +470,9 @@ class TerminalController {
     );
 
 
+
     refresh();
+
 
   }
 
@@ -412,10 +488,13 @@ class TerminalController {
 
   {
 
+
     selection.end();
 
 
+
     refresh();
+
 
   }
 
@@ -431,10 +510,13 @@ class TerminalController {
 
   {
 
+
     selection.clear();
 
 
+
     refresh();
+
 
   }
 
@@ -458,6 +540,7 @@ class TerminalController {
 
 
     if(cols <= 0 ||
+
        rows <= 0)
 
     {
@@ -471,10 +554,10 @@ class TerminalController {
 
 
 
-    if(
-      cols == _lastCols &&
-      rows == _lastRows
-    )
+
+    if(cols == _lastCols &&
+
+       rows == _lastRows)
 
     {
 
@@ -487,9 +570,11 @@ class TerminalController {
 
 
 
+
     _lastCols = cols;
 
     _lastRows = rows;
+
 
 
 
@@ -512,6 +597,19 @@ class TerminalController {
 
 
 
+    buffer.resize(
+
+      rows,
+
+      cols,
+
+    );
+
+
+
+
+
+
     engine.resize(
 
       cols,
@@ -520,6 +618,10 @@ class TerminalController {
 
     );
 
+
+
+
+    refresh();
 
 
   }
@@ -536,7 +638,9 @@ class TerminalController {
 
   {
 
+
     onUpdate?.call();
+
 
   }
 
@@ -554,9 +658,15 @@ class TerminalController {
 
 
     if(!_running)
+
     {
+
       return;
+
     }
+
+
+
 
 
 
@@ -564,7 +674,10 @@ class TerminalController {
 
 
 
+
+
     await engine.kill();
+
 
 
   }
@@ -581,7 +694,9 @@ class TerminalController {
 
   {
 
+
     stop();
+
 
   }
 
