@@ -1,121 +1,378 @@
-class AnsiEvent {}
+abstract class AnsiEvent {}
+
+
 
 class TextEvent extends AnsiEvent {
-  TextEvent(
-    this.text,
-  );
+
 
   final String text;
+
+
+  TextEvent(
+
+    this.text,
+
+  );
+
+
 }
+
+
+
+
+
+
 
 class CsiEvent extends AnsiEvent {
-  CsiEvent({
-    required this.command,
-    required this.args,
-  });
+
 
   final String command;
+
+
   final List<int> args;
+
+
+
+  CsiEvent(
+
+    this.command,
+
+    this.args,
+
+  );
+
+
 }
 
+
+
+
+
+
+
+
+
 class AnsiCsiParser {
+
+
+  final StringBuffer _text =
+
+      StringBuffer();
+
+
+
+  bool _escape = false;
+
+
+
+  bool _csi = false;
+
+
+
+  String _buffer = '';
+
+
+
+
+
+
+
+
+
   List<AnsiEvent> parse(
+
     String input,
-  ) {
-    final events = <AnsiEvent>[];
 
-    final text = StringBuffer();
+  )
 
-    int i = 0;
+  {
 
-    while (i < input.length) {
-      final ch = input[i];
 
-      if (ch == '\x1B') {
-        if (text.isNotEmpty) {
-          events.add(
-            TextEvent(
-              text.toString(),
-            ),
+    final List<AnsiEvent> events = [];
+
+
+
+
+
+
+    for(final rune in input.runes)
+
+    {
+
+
+      final char =
+
+          String.fromCharCode(
+
+            rune,
+
           );
 
-          text.clear();
+
+
+
+
+
+
+      if(!_escape)
+
+      {
+
+
+        if(char == '\x1B')
+
+        {
+
+
+          _flushText(events);
+
+
+
+          _escape = true;
+
+
         }
 
-        if (i + 1 >= input.length) {
-          break;
+        else
+
+        {
+
+
+          _text.write(
+
+            char,
+
+          );
+
+
         }
 
-        // CSI
-        if (input[i + 1] == '[') {
-          i += 2;
 
-          final sequence = StringBuffer();
+        continue;
 
-          while (i < input.length) {
-            final c = input[i];
-
-            if (_isCommand(c)) {
-              final args =
-                  _parseArguments(
-                sequence.toString(),
-              );
-
-              events.add(
-                CsiEvent(
-                  command: c,
-                  args: args,
-                ),
-              );
-
-              break;
-            }
-
-            sequence.write(c);
-
-            i++;
-          }
-        }
-      } else {
-        text.write(ch);
       }
 
-      i++;
+
+
+
+
+
+
+
+      if(_escape && !_csi)
+
+      {
+
+
+        if(char == '[')
+
+        {
+
+
+          _csi = true;
+
+          _buffer = '';
+
+        }
+
+        else
+
+        {
+
+
+          _escape = false;
+
+
+        }
+
+
+        continue;
+
+
+      }
+
+
+
+
+
+
+
+
+      if(_csi)
+
+      {
+
+
+
+        if(char.codeUnitAt(0)>=
+
+              0x40)
+
+        {
+
+
+
+          final args =
+
+              _parseArgs(
+
+                _buffer,
+
+              );
+
+
+
+
+
+          events.add(
+
+            CsiEvent(
+
+              char,
+
+              args,
+
+            ),
+
+          );
+
+
+
+
+
+          _escape = false;
+
+          _csi = false;
+
+          _buffer='';
+
+
+
+        }
+
+        else
+
+        {
+
+
+          _buffer += char;
+
+
+        }
+
+
+
+      }
+
+
+
     }
 
-    if (text.isNotEmpty) {
-      events.add(
-        TextEvent(
-          text.toString(),
-        ),
-      );
-    }
+
+
+
+
+
+    _flushText(events);
+
+
+
 
     return events;
+
+
   }
 
-  bool _isCommand(
-    String c,
-  ) {
-    return RegExp(
-      r'[A-Za-z@`~]',
-    ).hasMatch(c);
-  }
 
-  List<int> _parseArguments(
-    String input,
-  ) {
-    if (input.isEmpty) {
+
+
+
+
+
+
+
+  List<int> _parseArgs(
+
+    String value,
+
+  )
+
+  {
+
+
+    if(value.isEmpty)
+
+    {
+
       return [];
+
     }
 
-    return input
+
+
+
+
+
+    return value
+
         .split(';')
+
         .map(
-          (e) =>
-              int.tryParse(e) ??
-              0,
+
+          (e)
+
+          => int.tryParse(e)
+
+              ?? 0,
+
         )
+
         .toList();
+
+
   }
+
+
+
+
+
+
+
+
+
+  void _flushText(
+
+    List<AnsiEvent> events,
+
+  )
+
+  {
+
+
+    if(_text.isNotEmpty)
+
+    {
+
+
+      events.add(
+
+        TextEvent(
+
+          _text.toString(),
+
+        ),
+
+      );
+
+
+      _text.clear();
+
+
+    }
+
+
+  }
+
+
+
 }
