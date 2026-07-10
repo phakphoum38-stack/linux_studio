@@ -1,16 +1,15 @@
-import '../backend/terminal_backend.dart';
-import '../backend/pty_terminal_backend.dart';
+import 'dart:async';
 
+import '../backend/terminal_backend.dart';
 import 'ansi_csi_parser.dart';
 import 'screen_buffer.dart';
 import 'vt100_state_machine.dart';
 
 class TerminalEngine {
   TerminalEngine({
-    TerminalBackend? backend,
+    required this.backend,
     ScreenBuffer? buffer,
-  })  : backend = backend ?? PtyTerminalBackend(),
-        buffer = buffer ?? ScreenBuffer() {
+  }) : buffer = buffer ?? ScreenBuffer() {
     vt100 = VT100StateMachine(this.buffer);
   }
 
@@ -18,54 +17,36 @@ class TerminalEngine {
 
   final ScreenBuffer buffer;
 
-  final AnsiCsiParser parser =
-      AnsiCsiParser();
+  final AnsiCsiParser parser = AnsiCsiParser();
 
   late final VT100StateMachine vt100;
 
+  StreamSubscription<String>? _outputSub;
+  StreamSubscription<String>? _errorSub;
+
   Function()? onUpdate;
 
-  bool _running = false;
-
-  bool get isRunning =>
-      _running;
-
   Future<void> start() async {
-    if (_running) {
-      return;
-    }
+    await backend.start();
 
-    _running = true;
-
-    backend.output.listen(
+    _outputSub = backend.output.listen(
       _handleOutput,
       onError: (e) {
-        buffer.writeText(
-          '\n$error: $e\n',
-        );
-
+        buffer.writeText('\n$e\n');
         onUpdate?.call();
       },
     );
 
-    backend.errors.listen(
+    _errorSub = backend.errors.listen(
       (e) {
-        buffer.writeText(
-          '\n$error: $e\n',
-        );
-
+        buffer.writeText('\nERROR: $e\n');
         onUpdate?.call();
       },
     );
-
-    await backend.start();
   }
 
-  void _handleOutput(
-    String data,
-  ) {
-    final events =
-        parser.parse(data);
+  void _handleOutput(String data) {
+    final events = parser.parse(data);
 
     for (final event in events) {
       vt100.handle(event);
@@ -74,53 +55,23 @@ class TerminalEngine {
     onUpdate?.call();
   }
 
-  Future<void> write(
-    String text,
-  ) async {
-    if (!_running) {
-      return;
-    }
+  Future<void> write(String text) async {
+    if (text.isEmpty) return;
 
     await backend.write(text);
-  }
-
-  Future<void> sendKey(
-    String key,
-  ) async {
-    await write(key);
   }
 
   Future<void> resize(
     int cols,
     int rows,
   ) async {
-    if (!_running) {
-      return;
-    }
-
-    await backend.resize(
-      cols,
-      rows,
-    );
-  }
-
-  Future<void> clear() async {
-    buffer.clear();
-
-    onUpdate?.call();
+    await backend.resize(cols, rows);
   }
 
   Future<void> kill() async {
-    if (!_running) {
-      return;
-    }
-
-    _running = false;
+    await _outputSub?.cancel();
+    await _errorSub?.cancel();
 
     await backend.stop();
-  }
-
-  void dispose() {
-    kill();
   }
 }
