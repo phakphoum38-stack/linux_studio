@@ -6,11 +6,16 @@ import '../engine/screen_buffer.dart';
 class TerminalSession {
 
 
+
   late final TerminalController controller;
 
 
 
-  final ScreenBuffer buffer;
+  late final ScreenBuffer buffer;
+
+
+
+
 
 
 
@@ -24,11 +29,19 @@ class TerminalSession {
 
   })
 
-      : buffer =
-            buffer ??
-            ScreenBuffer()
-
   {
+
+
+
+    this.buffer =
+
+        buffer ??
+
+        ScreenBuffer();
+
+
+
+
 
 
     this.controller =
@@ -40,6 +53,7 @@ class TerminalSession {
           buffer: this.buffer,
 
         );
+
 
 
   }
@@ -72,7 +86,7 @@ class TerminalSession {
 
   void write(
 
-    String data,
+    String text,
 
   )
 
@@ -81,7 +95,7 @@ class TerminalSession {
 
     controller.write(
 
-      data,
+      text,
 
     );
 
@@ -144,9 +158,39 @@ class TerminalSession {
 
 
 
-  bool get running =>
+  bool get isRunning =>
 
       controller.isRunning;
+
+
+
+
+
+
+
+
+
+  ScreenBuffer get screen =>
+
+      controller.buffer;
+
+
+
+
+
+
+
+
+
+  void dispose()
+
+  {
+
+
+    controller.dispose();
+
+
+  }
 
 
 
