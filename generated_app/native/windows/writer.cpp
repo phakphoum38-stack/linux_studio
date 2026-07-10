@@ -1,13 +1,12 @@
 #include "writer.h"
 
-
-
 #ifdef _WIN32
+
+#include <windows.h>
 
 
 
 Writer::Writer()
-
 {
 
     pipe = nullptr;
@@ -20,8 +19,9 @@ Writer::Writer()
 
 
 
-Writer::~Writer()
 
+
+Writer::~Writer()
 {
 
     stop();
@@ -41,15 +41,14 @@ void Writer::attach(
     PipeManager* manager
 
 )
-
 {
 
     pipe = manager;
 
 
     running =
-
         pipe != nullptr;
+
 
 }
 
@@ -68,25 +67,45 @@ bool Writer::write(
     int length
 
 )
-
 {
 
-
     if(
-
         !running ||
-
         pipe == nullptr ||
-
-        data == nullptr
-
+        data == nullptr ||
+        length <= 0
     )
-
     {
 
         return false;
 
     }
+
+
+
+
+
+
+
+    HANDLE handle =
+
+        pipe->getInputWrite();
+
+
+
+
+
+
+
+
+    if(handle == nullptr)
+    {
+
+        return false;
+
+    }
+
+
 
 
 
@@ -99,11 +118,13 @@ bool Writer::write(
 
 
 
+
+
     BOOL result =
 
         WriteFile(
 
-            pipe->getInputWrite(),
+            handle,
 
             data,
 
@@ -120,14 +141,13 @@ bool Writer::write(
 
 
 
-    return (
+
+
+    return
 
         result &&
 
-        written == length
-
-    );
-
+        written == static_cast<DWORD>(length);
 
 
 }
@@ -141,7 +161,6 @@ bool Writer::write(
 
 
 bool Writer::isRunning() const
-
 {
 
     return running;
@@ -157,12 +176,13 @@ bool Writer::isRunning() const
 
 
 void Writer::stop()
-
 {
 
     running = false;
 
+
     pipe = nullptr;
+
 
 }
 
