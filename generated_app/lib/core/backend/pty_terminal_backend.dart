@@ -21,12 +21,13 @@ class PtyTerminalBackend implements TerminalBackend {
   bool _running = false;
 
   @override
-  Stream<String> get output =>
-      _outputController.stream;
+  bool get isRunning => _running;
 
   @override
-  Stream<String> get errors =>
-      _errorController.stream;
+  Stream<String> get output => _outputController.stream;
+
+  @override
+  Stream<String> get errors => _errorController.stream;
 
   @override
   Future<void> start() async {
@@ -36,7 +37,7 @@ class PtyTerminalBackend implements TerminalBackend {
 
     if (!_terminal.open()) {
       _errorController.add(
-        'Unable to create native terminal.',
+        'Unable to start terminal.',
       );
       return;
     }
@@ -44,17 +45,19 @@ class PtyTerminalBackend implements TerminalBackend {
     _running = true;
 
     _readerTimer = Timer.periodic(
-      const Duration(milliseconds: 16),
+      const Duration(
+        milliseconds: 16,
+      ),
       (_) {
         if (!_running) {
           return;
         }
 
         try {
-          final text = _terminal.read();
+          final data = _terminal.read();
 
-          if (text.isNotEmpty) {
-            _outputController.add(text);
+          if (data.isNotEmpty) {
+            _outputController.add(data);
           }
         } catch (e) {
           _errorController.add(
@@ -63,24 +66,6 @@ class PtyTerminalBackend implements TerminalBackend {
         }
       },
     );
-  }
-
-  @override
-  Future<void> stop() async {
-    _running = false;
-
-    _readerTimer?.cancel();
-    _readerTimer = null;
-
-    _terminal.close();
-
-    if (!_outputController.isClosed) {
-      await _outputController.close();
-    }
-
-    if (!_errorController.isClosed) {
-      await _errorController.close();
-    }
   }
 
   @override
@@ -116,5 +101,18 @@ class PtyTerminalBackend implements TerminalBackend {
       cols: cols,
       rows: rows,
     );
+  }
+
+  @override
+  Future<void> stop() async {
+    _running = false;
+
+    _readerTimer?.cancel();
+    _readerTimer = null;
+
+    _terminal.close();
+
+    await _outputController.close();
+    await _errorController.close();
   }
 }
