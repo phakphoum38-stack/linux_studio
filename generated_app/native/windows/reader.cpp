@@ -5,18 +5,29 @@
 #include <windows.h>
 
 
+
 Reader::Reader()
 {
+
     pipe = nullptr;
+
     running = false;
+
 }
+
+
+
 
 
 
 Reader::~Reader()
 {
+
     stop();
+
 }
+
+
 
 
 
@@ -24,14 +35,18 @@ Reader::~Reader()
 
 
 void Reader::attach(
+
     PipeManager* manager
+
 )
 {
 
     pipe = manager;
 
+
     running =
         pipe != nullptr;
+
 
 }
 
@@ -44,10 +59,12 @@ void Reader::attach(
 
 
 int Reader::read(
-    char* buffer,
-    int size
-)
 
+    char* buffer,
+
+    int size
+
+)
 {
 
     if(
@@ -63,8 +80,11 @@ int Reader::read(
 
 
 
+
+
     HANDLE handle =
         pipe->getOutputRead();
+
 
 
 
@@ -78,50 +98,38 @@ int Reader::read(
 
 
 
+
     DWORD available = 0;
 
 
 
-    BOOL peek =
-        PeekNamedPipe(
-
-            handle,
-
-            nullptr,
-
-            0,
-
-            nullptr,
-
-            &available,
-
-            nullptr
-
-        );
 
 
 
 
 
-    if(!peek)
+    if(!PeekNamedPipe(
+
+        handle,
+
+        nullptr,
+
+        0,
+
+        nullptr,
+
+        &available,
+
+        nullptr
+
+    ))
     {
-
-        DWORD error =
-            GetLastError();
-
-
-        if(
-            error ==
-            ERROR_BROKEN_PIPE
-        )
-        {
-            running = false;
-        }
-
 
         return 0;
 
     }
+
+
 
 
 
@@ -139,12 +147,17 @@ int Reader::read(
 
 
 
+
     DWORD bytesRead = 0;
 
 
 
 
+
+
+
     BOOL result =
+
         ReadFile(
 
             handle,
@@ -164,24 +177,11 @@ int Reader::read(
 
 
 
+
+
     if(!result)
     {
-
-        DWORD error =
-            GetLastError();
-
-
-        if(
-            error ==
-            ERROR_BROKEN_PIPE
-        )
-        {
-            running = false;
-        }
-
-
         return 0;
-
     }
 
 
@@ -190,8 +190,11 @@ int Reader::read(
 
 
 
+
     return static_cast<int>(
+
         bytesRead
+
     );
 
 
@@ -204,10 +207,14 @@ int Reader::read(
 
 
 
+
 bool Reader::isRunning() const
 {
+
     return running;
+
 }
+
 
 
 
@@ -221,7 +228,9 @@ void Reader::stop()
 
     running = false;
 
+
     pipe = nullptr;
+
 
 }
 
