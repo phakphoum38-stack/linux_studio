@@ -3,116 +3,242 @@ import 'dart:async';
 import 'native_terminal.dart';
 import 'terminal_backend.dart';
 
-class PtyTerminalBackend implements TerminalBackend {
-  PtyTerminalBackend({
-    NativeTerminal? terminal,
-  }) : _terminal = terminal ?? NativeTerminal();
 
-  final NativeTerminal _terminal;
+class PtyTerminalBackend
+    implements TerminalBackend {
 
-  final StreamController<String> _outputController =
+
+  PtyTerminalBackend();
+
+
+
+  final NativeTerminal terminal =
+      NativeTerminal();
+
+
+
+  final StreamController<String>
+      _output =
       StreamController<String>.broadcast();
 
-  final StreamController<String> _errorController =
+
+
+  final StreamController<String>
+      _errors =
       StreamController<String>.broadcast();
 
-  Timer? _readerTimer;
+
+
+  Timer? _reader;
+
+
 
   bool _running = false;
 
-  @override
-  bool get isRunning => _running;
+
 
   @override
-  Stream<String> get output => _outputController.stream;
+  Stream<String> get output =>
+      _output.stream;
+
+
 
   @override
-  Stream<String> get errors => _errorController.stream;
+  Stream<String> get errors =>
+      _errors.stream;
+
+
+
+
 
   @override
-  Future<void> start() async {
-    if (_running) {
+  Future<void> start()
+  async {
+
+    if(_running){
       return;
     }
 
-    if (!_terminal.open()) {
-      _errorController.add(
-        'Unable to start terminal.',
+
+
+    final result =
+        terminal.open();
+
+
+
+    if(!result){
+
+      _errors.add(
+        'Unable to start ConPTY',
       );
+
       return;
+
     }
+
+
 
     _running = true;
 
-    _readerTimer = Timer.periodic(
-      const Duration(
-        milliseconds: 16,
-      ),
-      (_) {
-        if (!_running) {
-          return;
-        }
 
-        try {
-          final data = _terminal.read();
 
-          if (data.isNotEmpty) {
-            _outputController.add(data);
-          }
-        } catch (e) {
-          _errorController.add(
-            e.toString(),
-          );
-        }
-      },
-    );
+    _reader =
+        Timer.periodic(
+
+          const Duration(
+            milliseconds: 16,
+          ),
+
+          (_) {
+
+            _readOutput();
+
+          },
+
+        );
+
+
   }
+
+
+
+
+
+
+  void _readOutput(){
+
+    if(!_running){
+      return;
+    }
+
+
+
+    try {
+
+      final data =
+          terminal.read();
+
+
+
+      if(data.isNotEmpty){
+
+        _output.add(
+          data,
+        );
+
+      }
+
+
+    }
+
+    catch(e){
+
+      _errors.add(
+        e.toString(),
+      );
+
+    }
+
+  }
+
+
+
+
+
+
+
 
   @override
   Future<void> write(
     String text,
-  ) async {
-    if (!_running) {
+  )
+  async {
+
+    if(!_running){
       return;
     }
 
-    _terminal.write(text);
+
+    terminal.write(
+      text,
+    );
+
   }
+
+
+
+
+
+
 
   @override
-  String read() {
-    if (!_running) {
-      return '';
-    }
+  String read(){
 
-    return _terminal.read();
+    return terminal.read();
+
   }
+
+
+
+
+
+
 
   @override
   Future<void> resize(
     int cols,
     int rows,
-  ) async {
-    if (!_running) {
+  )
+  async {
+
+
+    if(!_running){
       return;
     }
 
-    _terminal.resize(
+
+
+    terminal.resize(
       cols: cols,
       rows: rows,
     );
+
+
   }
+
+
+
+
+
+
+
 
   @override
-  Future<void> stop() async {
-    _running = false;
+  Future<void> stop()
+  async {
 
-    _readerTimer?.cancel();
-    _readerTimer = null;
 
-    _terminal.close();
+    _running=false;
 
-    await _outputController.close();
-    await _errorController.close();
+
+
+    _reader?.cancel();
+
+    _reader=null;
+
+
+
+    terminal.close();
+
+
+
+    await _output.close();
+
+    await _errors.close();
+
+
   }
+
+
+
 }
