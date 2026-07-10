@@ -1,35 +1,31 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'native_terminal.dart';
 import 'terminal_backend.dart';
+
 
 
 class PtyTerminalBackend
     implements TerminalBackend {
 
 
-  PtyTerminalBackend();
-
-
-
-  final NativeTerminal terminal =
-      NativeTerminal();
+  Process? _process;
 
 
 
   final StreamController<String>
-      _output =
+      _outputController =
+
       StreamController<String>.broadcast();
 
 
 
   final StreamController<String>
-      _errors =
+      _errorController =
+
       StreamController<String>.broadcast();
 
 
-
-  Timer? _reader;
 
 
 
@@ -39,13 +35,17 @@ class PtyTerminalBackend
 
   @override
   Stream<String> get output =>
-      _output.stream;
+      _outputController.stream;
 
 
 
   @override
   Stream<String> get errors =>
-      _errors.stream;
+      _errorController.stream;
+
+
+
+
 
 
 
@@ -53,61 +53,12 @@ class PtyTerminalBackend
 
   @override
   Future<void> start()
+
   async {
 
-    if(_running){
-      return;
-    }
 
-
-
-    final result =
-        terminal.open();
-
-
-
-    if(!result){
-
-      _errors.add(
-        'Unable to start ConPTY',
-      );
-
-      return;
-
-    }
-
-
-
-    _running = true;
-
-
-
-    _reader =
-        Timer.periodic(
-
-          const Duration(
-            milliseconds: 16,
-          ),
-
-          (_) {
-
-            _readOutput();
-
-          },
-
-        );
-
-
-  }
-
-
-
-
-
-
-  void _readOutput(){
-
-    if(!_running){
+    if(_running)
+    {
       return;
     }
 
@@ -115,31 +66,130 @@ class PtyTerminalBackend
 
     try {
 
-      final data =
-          terminal.read();
+
+      if(Platform.isWindows)
+
+      {
 
 
+        _process =
 
-      if(data.isNotEmpty){
+            await Process.start(
 
-        _output.add(
-          data,
-        );
+              'cmd.exe',
+
+              [],
+
+              runInShell:true,
+
+            );
+
+
+      }
+
+      else
+
+      {
+
+
+        _process =
+
+            await Process.start(
+
+              '/bin/bash',
+
+              [
+
+                '-i'
+
+              ],
+
+            );
+
 
       }
 
 
+
+
+
+
+      _running = true;
+
+
+
+
+
+      _process!
+          .stdout
+          .transform(
+            const SystemEncoding()
+                .decoder,
+          )
+          .listen(
+
+            (data)
+
+            {
+
+              _outputController.add(
+                data,
+              );
+
+            },
+
+          );
+
+
+
+
+
+
+
+
+      _process!
+          .stderr
+          .transform(
+            const SystemEncoding()
+                .decoder,
+          )
+          .listen(
+
+            (data)
+
+            {
+
+              _errorController.add(
+                data,
+              );
+
+            },
+
+          );
+
+
+
+
+
+
+
     }
 
-    catch(e){
+    catch(e)
 
-      _errors.add(
+    {
+
+      _errorController.add(
+
         e.toString(),
+
       );
 
     }
 
+
   }
+
 
 
 
@@ -150,20 +200,41 @@ class PtyTerminalBackend
 
   @override
   Future<void> write(
+
     String text,
+
   )
+
   async {
 
-    if(!_running){
+
+    if(!_running ||
+       _process == null)
+
+    {
+
       return;
+
     }
 
 
-    terminal.write(
-      text,
-    );
+
+
+
+    _process!
+
+        .stdin
+
+        .write(
+
+          text,
+
+        );
+
 
   }
+
+
 
 
 
@@ -172,11 +243,15 @@ class PtyTerminalBackend
 
 
   @override
-  String read(){
+  String read()
 
-    return terminal.read();
+  {
+
+    return '';
 
   }
+
+
 
 
 
@@ -186,25 +261,22 @@ class PtyTerminalBackend
 
   @override
   Future<void> resize(
+
     int cols,
+
     int rows,
+
   )
+
   async {
 
 
-    if(!_running){
-      return;
-    }
-
-
-
-    terminal.resize(
-      cols: cols,
-      rows: rows,
-    );
+    // Native ConPTY resize
+    // จะเชื่อม FFI ในขั้นต่อไป
 
 
   }
+
 
 
 
@@ -215,26 +287,27 @@ class PtyTerminalBackend
 
   @override
   Future<void> stop()
+
   async {
 
 
-    _running=false;
+    _running = false;
 
 
 
-    _reader?.cancel();
-
-    _reader=null;
+    _process?.kill();
 
 
 
-    terminal.close();
+    _process = null;
 
 
 
-    await _output.close();
+    await _outputController.close();
 
-    await _errors.close();
+
+
+    await _errorController.close();
 
 
   }
