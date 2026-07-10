@@ -1,9 +1,10 @@
 import 'dart:async';
 
-import '../backend/native_terminal.dart';
 import '../engine/terminal_engine.dart';
 import '../engine/screen_buffer.dart';
+
 import '../backend/terminal_backend.dart';
+import '../backend/pty_terminal_backend.dart';
 
 import '../engine/input_pipeline.dart';
 import '../input/keyboard_pipeline.dart';
@@ -15,13 +16,14 @@ import '../clipboard/terminal_clipboard.dart';
 import '../terminal/terminal_size.dart';
 
 
+
 class TerminalController {
 
 
-  final TerminalEngine engine;
+  late final TerminalEngine engine;
 
 
-  final NativeTerminal? nativeTerminal;
+  late ScreenBuffer buffer;
 
 
 
@@ -40,8 +42,6 @@ class TerminalController {
 
 
 
-  late ScreenBuffer buffer;
-
 
 
   Function()? onUpdate;
@@ -58,15 +58,15 @@ class TerminalController {
 
 
 
-  Timer? _nativeReader;
-
-
-
   bool _running = false;
 
 
 
-  bool get isRunning => _running;
+  bool get isRunning =>
+      _running;
+
+
+
 
 
 
@@ -81,32 +81,48 @@ class TerminalController {
 
     TerminalBackend? backend,
 
-    NativeTerminal? native,
+  })
 
-  }) :
+  {
 
-      engine =
-          engine ??
-          TerminalEngine(
-            backend: backend,
-            buffer: buffer,
-          ),
 
-      nativeTerminal = native {
+    this.engine =
+
+        engine ??
+
+        TerminalEngine(
+
+          backend:
+              backend ??
+              PtyTerminalBackend(),
+
+
+          buffer:
+              buffer ??
+              ScreenBuffer(),
+
+        );
+
+
 
 
     this.buffer =
-        buffer ??
         this.engine.buffer;
 
 
 
+
+
+
     keyboard.onInput =
-        (data){
 
-      send(data);
+        (data)
 
-    };
+        {
+
+          write(data);
+
+        };
 
 
   }
@@ -118,39 +134,23 @@ class TerminalController {
 
 
 
-  Future<void> start([
 
-    ScreenBuffer? screen,
-
-    Function()? render,
-
-  ])
+  Future<void> start()
 
   async {
 
 
-    if(screen != null){
-
-      buffer = screen;
-
-    }
-
-
-
-    if(render != null){
-
-      onUpdate = render;
-
-    }
-
-
-
     engine.onUpdate =
-        (){
 
-      refresh();
+        ()
 
-    };
+        {
+
+          refresh();
+
+        };
+
+
 
 
 
@@ -161,10 +161,6 @@ class TerminalController {
     _running = true;
 
 
-
-    _startNativeReader();
-
-
   }
 
 
@@ -175,52 +171,27 @@ class TerminalController {
 
 
 
-  void _startNativeReader(){
+  void write(
+
+    String text,
+
+  )
+
+  {
 
 
-    if(nativeTerminal == null){
-
+    if(!_running)
+    {
       return;
-
     }
 
 
 
-    _nativeReader =
-        Timer.periodic(
+    engine.write(
 
-          const Duration(
-            milliseconds: 50,
-          ),
+      text,
 
-          (_) {
-
-
-            if(!_running){
-
-              return;
-
-            }
-
-
-
-            final output =
-                nativeTerminal!.read();
-
-
-
-            if(output.isNotEmpty){
-
-              engine.write(
-                output,
-              );
-
-            }
-
-
-          },
-
-        );
+    );
 
 
   }
@@ -234,46 +205,17 @@ class TerminalController {
 
 
   void send(
+
     String text,
-  ){
 
+  )
 
-    if(text.isEmpty){
+  {
 
-      return;
-
-    }
-
-
-
-    engine.write(
-      text,
-    );
-
-
-    nativeTerminal?.write(
-      text,
-    );
-
+    write(text);
 
   }
 
-
-
-
-
-
-
-
-  void write(
-    String text,
-  ){
-
-    send(
-      text,
-    );
-
-  }
 
 
 
@@ -283,8 +225,12 @@ class TerminalController {
 
 
   void sendKey(
+
     String key,
-  ){
+
+  )
+
+  {
 
     keyboard.sendKey(
       key,
@@ -301,25 +247,29 @@ class TerminalController {
 
 
   void paste(
+
     String text,
-  ){
+
+  )
+
+  {
 
 
-    input.add(
-      text,
-    );
+    input.add(text);
+
 
 
     final data =
+
         input.flush();
 
 
 
-    if(data.isNotEmpty){
+    if(data.isNotEmpty)
 
-      send(
-        data,
-      );
+    {
+
+      write(data);
 
     }
 
@@ -340,15 +290,16 @@ class TerminalController {
 
 
     final text =
+
         await TerminalClipboard.paste();
 
 
 
-    if(text.isNotEmpty){
+    if(text.isNotEmpty)
 
-      paste(
-        text,
-      );
+    {
+
+      paste(text);
 
     }
 
@@ -369,14 +320,19 @@ class TerminalController {
 
 
     final text =
+
         selection.extract(
+
           buffer,
+
         );
 
 
 
     await TerminalClipboard.copy(
+
       text,
+
     );
 
 
@@ -391,19 +347,25 @@ class TerminalController {
 
 
   void startSelection(
-    int row,
-    int col,
-  ){
 
+    int row,
+
+    int col,
+
+  )
+
+  {
 
     selection.start(
+
       row,
+
       col,
+
     );
 
 
     refresh();
-
 
   }
 
@@ -416,19 +378,25 @@ class TerminalController {
 
 
   void updateSelection(
-    int row,
-    int col,
-  ){
 
+    int row,
+
+    int col,
+
+  )
+
+  {
 
     selection.update(
+
       row,
+
       col,
+
     );
 
 
     refresh();
-
 
   }
 
@@ -440,15 +408,15 @@ class TerminalController {
 
 
 
-  void endSelection(){
+  void endSelection()
 
+  {
 
     selection.end();
 
 
     refresh();
 
-
   }
 
 
@@ -459,14 +427,14 @@ class TerminalController {
 
 
 
-  void clearSelection(){
+  void clearSelection()
 
+  {
 
     selection.clear();
 
 
     refresh();
-
 
   }
 
@@ -479,30 +447,43 @@ class TerminalController {
 
 
   void resize(
+
     int cols,
+
     int rows,
-  ){
+
+  )
+
+  {
 
 
-    if(
-      cols <= 0 ||
-      rows <= 0
-    ){
+    if(cols <= 0 ||
+       rows <= 0)
+
+    {
 
       return;
 
     }
+
+
+
 
 
 
     if(
       cols == _lastCols &&
       rows == _lastRows
-    ){
+    )
+
+    {
 
       return;
 
     }
+
+
+
 
 
 
@@ -512,29 +493,33 @@ class TerminalController {
 
 
 
+
+
+
     terminalSize =
+
         TerminalSize(
+
           cols: cols,
+
           rows: rows,
+
         );
 
 
 
+
+
+
+
     engine.resize(
+
       cols,
+
       rows,
+
     );
 
-
-
-    nativeTerminal?.resize(
-      cols: cols,
-      rows: rows,
-    );
-
-
-
-    refresh();
 
 
   }
@@ -547,7 +532,9 @@ class TerminalController {
 
 
 
-  void refresh(){
+  void refresh()
+
+  {
 
     onUpdate?.call();
 
@@ -566,27 +553,14 @@ class TerminalController {
   async {
 
 
-    if(!_running){
-
+    if(!_running)
+    {
       return;
-
     }
 
 
 
     _running = false;
-
-
-
-    _nativeReader?.cancel();
-
-
-
-    _nativeReader = null;
-
-
-
-    nativeTerminal?.close();
 
 
 
@@ -603,11 +577,14 @@ class TerminalController {
 
 
 
-  void dispose(){
+  void dispose()
+
+  {
 
     stop();
 
   }
+
 
 
 }
