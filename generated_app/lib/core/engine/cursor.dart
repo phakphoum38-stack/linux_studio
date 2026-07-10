@@ -20,20 +20,17 @@ class Cursor {
     col = newCol;
   }
 
-  void moveUp([
-    int count = 1,
-  ]) {
+  void moveUp([int count = 1]) {
     row -= count;
-
     if (row < 0) {
       row = 0;
     }
   }
 
   void moveDown(
-    int maxRows, [
-    int count = 1,
-  ]) {
+    int count,
+    int maxRows,
+  ) {
     row += count;
 
     if (row >= maxRows) {
@@ -41,9 +38,7 @@ class Cursor {
     }
   }
 
-  void moveLeft([
-    int count = 1,
-  ]) {
+  void moveLeft([int count = 1]) {
     col -= count;
 
     if (col < 0) {
@@ -52,9 +47,9 @@ class Cursor {
   }
 
   void moveRight(
-    int maxCols, [
-    int count = 1,
-  ]) {
+    int count,
+    int maxCols,
+  ) {
     col += count;
 
     if (col >= maxCols) {
