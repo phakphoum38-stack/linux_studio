@@ -1,99 +1,453 @@
 import 'screen_buffer.dart';
 
+
+
 class VT100Controller {
-  int row = 0;
-  int col = 0;
+
+
+  bool cursorVisible = true;
+
+
+
+  bool bold = false;
+
+
+
+  bool underline = false;
+
+
+
+  bool inverse = false;
+
+
+
+
+
+
+
 
 
   void execute(
-    String cmd,
+
+    String command,
+
     List<int> args,
+
     ScreenBuffer buffer,
-  ) {
 
-    final count =
-        args.isEmpty ? 1 : args[0];
+  )
 
-
-    switch (cmd) {
-
-      case 'CUU':
-        row = (row - count)
-            .clamp(0, buffer.rows - 1);
-        break;
+  {
 
 
-      case 'CUD':
-        row = (row + count)
-            .clamp(0, buffer.rows - 1);
-        break;
+    switch(command)
+
+    {
 
 
-      case 'CUF':
-        col = (col + count)
-            .clamp(0, buffer.cols - 1);
-        break;
 
+      // Cursor Up
+      case 'A':
 
-      case 'CUB':
-        col = (col - count)
-            .clamp(0, buffer.cols - 1);
-        break;
+        buffer.cursor.row =
 
+            (buffer.cursor.row -
+             _value(args))
 
-      case 'CUP':
-
-        row = (args.isNotEmpty
-                ? args[0] - 1
-                : 0)
             .clamp(
+
               0,
+
               buffer.rows - 1,
+
             );
 
+        break;
 
-        col = (args.length > 1
-                ? args[1] - 1
-                : 0)
+
+
+
+
+
+
+      // Cursor Down
+      case 'B':
+
+        buffer.cursor.row =
+
+            (buffer.cursor.row +
+             _value(args))
+
             .clamp(
+
               0,
-              buffer.cols - 1,
+
+              buffer.rows - 1,
+
             );
 
         break;
 
 
-      case 'ED':
-        buffer.clear();
-        row = 0;
-        col = 0;
+
+
+
+
+
+      // Cursor Right
+      case 'C':
+
+        buffer.cursor.col =
+
+            (buffer.cursor.col +
+             _value(args))
+
+            .clamp(
+
+              0,
+
+              buffer.cols - 1,
+
+            );
+
         break;
 
 
-      case 'EL':
-        _clearLine(
-          buffer,
-          row,
+
+
+
+
+
+      // Cursor Left
+      case 'D':
+
+        buffer.cursor.col =
+
+            (buffer.cursor.col -
+             _value(args))
+
+            .clamp(
+
+              0,
+
+              buffer.cols - 1,
+
+            );
+
+        break;
+
+
+
+
+
+
+
+      // Cursor position
+      case 'H':
+
+      case 'f':
+
+        final row =
+
+            args.isNotEmpty
+                ? args[0]
+                : 1;
+
+
+
+        final col =
+
+            args.length > 1
+                ? args[1]
+                : 1;
+
+
+
+        buffer.cursor.row =
+
+            (row - 1)
+
+            .clamp(
+
+              0,
+
+              buffer.rows - 1,
+
+            );
+
+
+
+        buffer.cursor.col =
+
+            (col - 1)
+
+            .clamp(
+
+              0,
+
+              buffer.cols - 1,
+
+            );
+
+
+        break;
+
+
+
+
+
+
+
+
+      // Clear screen
+      case 'J':
+
+        if(_value(args)==2)
+
+        {
+
+          buffer.clear();
+
+        }
+
+        break;
+
+
+
+
+
+
+
+
+      // Clear line
+      case 'K':
+
+        buffer.clearLine(
+
+          buffer.cursor.row,
+
         );
+
         break;
+
+
+
+
+
+
+
+
+      // Style
+      case 'm':
+
+        _applyStyle(
+
+          args,
+
+          buffer,
+
+        );
+
+        break;
+
+
+
+
+
+
+
+
+      // Cursor show
+
+      case 'h':
+
+        if(args.contains(25))
+
+        {
+
+          cursorVisible = true;
+
+        }
+
+        break;
+
+
+
+
+
+
+
+
+      // Cursor hide
+
+      case 'l':
+
+        if(args.contains(25))
+
+        {
+
+          cursorVisible = false;
+
+        }
+
+        break;
+
+
+
     }
+
+
   }
 
 
-  void _clearLine(
+
+
+
+
+
+
+
+  int _value(
+
+    List<int> args,
+
+  )
+
+  {
+
+
+    if(args.isEmpty ||
+       args[0]==0)
+
+    {
+
+      return 1;
+
+    }
+
+
+
+    return args[0];
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void _applyStyle(
+
+    List<int> args,
+
     ScreenBuffer buffer,
-    int line,
-  ) {
 
-    if (line < 0 ||
-        line >= buffer.rows) {
+  )
+
+  {
+
+
+    if(args.isEmpty)
+
+    {
+
+      buffer.currentForeground = 37;
+
+      buffer.currentBackground = 40;
+
       return;
+
     }
 
 
-    for (int c = 0; c < buffer.cols; c++) {
 
-      buffer.buffer[line][c].char = ' ';
+
+
+
+
+    for(final value in args)
+
+    {
+
+
+
+      if(value >=30 &&
+         value <=37)
+
+      {
+
+        buffer.currentForeground =
+            value;
+
+      }
+
+
+
+
+
+
+
+      if(value >=40 &&
+         value <=47)
+
+      {
+
+        buffer.currentBackground =
+            value;
+
+      }
+
+
+
+
+
+
+
+      if(value==1)
+
+      {
+
+        bold = true;
+
+      }
+
+
+
+
+
+
+
+      if(value==4)
+
+      {
+
+        underline = true;
+
+      }
+
+
+
+
+
+
+
+      if(value==7)
+
+      {
+
+        inverse = true;
+
+      }
+
+
     }
+
+
   }
+
+
 }
