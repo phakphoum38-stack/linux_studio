@@ -351,11 +351,3 @@ class ScreenBuffer {
     inverse = false;
   }
 }
-
-
-  
-
-
-  
-
-  
