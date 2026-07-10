@@ -1,49 +1,46 @@
-import '../engine/terminal_engine.dart';
+import '../controller/terminal_controller.dart';
 import '../engine/screen_buffer.dart';
-import '../scroll/scrollback_buffer.dart';
-import '../scroll/terminal_scroll_controller.dart';
-import '../render/diff_renderer.dart';
+
 
 
 class TerminalSession {
 
 
-  final TerminalEngine engine =
-      TerminalEngine();
+  late final TerminalController controller;
 
 
 
-  late ScreenBuffer screen;
-
-
-
-  final ScrollbackBuffer scrollback =
-      ScrollbackBuffer();
-
-
-
-  late TerminalScrollController scroll;
-
-
-
-  final DiffRenderer diff =
-      DiffRenderer();
-
-
-
-  Function()? onUpdate;
+  final ScreenBuffer buffer;
 
 
 
 
 
+  TerminalSession({
 
-  TerminalSession(){
+    TerminalController? controller,
 
-    scroll =
-        TerminalScrollController(
-          scrollback,
+    ScreenBuffer? buffer,
+
+  })
+
+      : buffer =
+            buffer ??
+            ScreenBuffer()
+
+  {
+
+
+    this.controller =
+
+        controller ??
+
+        TerminalController(
+
+          buffer: this.buffer,
+
         );
+
 
   }
 
@@ -54,30 +51,13 @@ class TerminalSession {
 
 
 
-  Future<void> start(
-    ScreenBuffer buffer,
-    Function() render,
-  ) async {
+
+  Future<void> start()
+
+  async {
 
 
-    screen = buffer;
-
-    onUpdate = render;
-
-
-
-    engine.onUpdate =
-        () {
-
-
-      onUpdate?.call();
-
-
-    };
-
-
-
-    await engine.start();
+    await controller.start();
 
 
   }
@@ -91,20 +71,18 @@ class TerminalSession {
 
 
   void write(
-    String input,
-  ){
+
+    String data,
+
+  )
+
+  {
 
 
-    if(input.isEmpty){
+    controller.write(
 
-      return;
+      data,
 
-    }
-
-
-
-    engine.write(
-      input,
     );
 
 
@@ -117,82 +95,27 @@ class TerminalSession {
 
 
 
-  // ===================
-  // Scroll Control
-  // ===================
+
+  void resize(
+
+    int cols,
+
+    int rows,
+
+  )
+
+  {
 
 
+    controller.resize(
 
-  void scrollUp(){
+      cols,
 
-    scroll.scrollUp(
-      3,
+      rows,
+
     );
 
 
-    onUpdate?.call();
-
-  }
-
-
-
-
-
-
-  void scrollDown(){
-
-    scroll.scrollDown(
-      3,
-    );
-
-
-    onUpdate?.call();
-
-  }
-
-
-
-
-
-
-
-  void pageUp(){
-
-    scroll.pageUp();
-
-
-    onUpdate?.call();
-
-  }
-
-
-
-
-
-
-
-  void pageDown(){
-
-    scroll.pageDown();
-
-
-    onUpdate?.call();
-
-  }
-
-
-
-
-
-
-
-  void scrollToBottom(){
-
-    scroll.bottom();
-
-
-    onUpdate?.call();
-
   }
 
 
@@ -202,15 +125,29 @@ class TerminalSession {
 
 
 
-  Future<void> kill()
+
+  Future<void> stop()
 
   async {
 
 
-    await engine.kill();
+    await controller.stop();
 
 
   }
+
+
+
+
+
+
+
+
+
+  bool get running =>
+
+      controller.isRunning;
+
 
 
 }
