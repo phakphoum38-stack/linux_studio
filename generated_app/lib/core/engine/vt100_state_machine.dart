@@ -1,412 +1,399 @@
-import 'screen_buffer.dart';
 import 'ansi_csi_parser.dart';
-
-
+import 'screen_buffer.dart';
 
 class VT100StateMachine {
-
-
-  final ScreenBuffer buffer;
-
-
-  bool cursorVisible=true;
-
-
-
   VT100StateMachine([
     ScreenBuffer? buffer,
   ]) : buffer = buffer ?? ScreenBuffer();
 
+  final ScreenBuffer buffer;
 
+  bool cursorVisible = true;
 
+  int get cursorRow => buffer.cursor.row;
 
-  int get cursorRow =>
-      buffer.cursor.row;
+  int get cursorCol => buffer.cursor.col;
 
-
-  set cursorRow(int value){
-
+  set cursorRow(int value) {
     buffer.cursor.row =
         value.clamp(
           0,
-          buffer.rows-1,
+          buffer.rows - 1,
         );
-
   }
 
-
-  int get cursorCol =>
-      buffer.cursor.col;
-
-
-  set cursorCol(int value){
-
+  set cursorCol(int value) {
     buffer.cursor.col =
         value.clamp(
           0,
-          buffer.cols-1,
+          buffer.cols - 1,
         );
-
   }
-
-
-  int get fg =>
-      buffer.currentForeground;
-
-
-  int get bg =>
-      buffer.currentBackground;
-
-
-  void applyCommand(
-    String cmd,
-    List<int> args,
-  ){
-
-    execute(
-      cmd,
-      args,
-    );
-
-  }
-
-
-  void process(
-    String cmd,
-    List<int> args,
-    ScreenBuffer target,
-  ){
-
-    execute(
-      cmd,
-      args,
-    );
-
-  }
-
-
-
-
-
 
   void handle(
     AnsiEvent event,
-  ){
-
-
-    if(event is TextEvent){
-
+  ) {
+    if (event is TextEvent) {
       buffer.writeText(
         event.text,
       );
-
-
+      return;
     }
 
-
-
-    if(event is CsiEvent){
-
+    if (event is CsiEvent) {
       execute(
         event.command,
         event.args,
       );
-
     }
-
-
   }
 
-
-
-
-
-
-
-
-
   void execute(
-    String cmd,
+    String command,
     List<int> args,
-  ){
-
-
-    switch(cmd){
-
-
-
-      // Cursor Up
+  ) {
+    switch (command) {
       case 'A':
-
-        buffer.cursor.row =
-            (buffer.cursor.row -
-            _value(args))
-            .clamp(
-              0,
-              buffer.rows-1,
-            );
-
+        _cursorUp(args);
         break;
 
-
-
-
-
-      // Cursor Down
       case 'B':
-
-        buffer.cursor.row =
-            (buffer.cursor.row +
-            _value(args))
-            .clamp(
-              0,
-              buffer.rows-1,
-            );
-
+        _cursorDown(args);
         break;
 
-
-
-
-
-      // Cursor Forward
       case 'C':
-
-        buffer.cursor.col =
-            (buffer.cursor.col +
-            _value(args))
-            .clamp(
-              0,
-              buffer.cols-1,
-            );
-
+        _cursorForward(args);
         break;
 
-
-
-
-
-      // Cursor Back
       case 'D':
-
-        buffer.cursor.col =
-            (buffer.cursor.col -
-            _value(args))
-            .clamp(
-              0,
-              buffer.cols-1,
-            );
-
+        _cursorBack(args);
         break;
 
-
-
-
-
-
-
-      // Cursor Position
       case 'H':
-
       case 'f':
-
-        buffer.cursor.row =
-            ((args.isNotEmpty
-                ? args[0]
-                : 1)-1)
-            .clamp(
-              0,
-              buffer.rows-1,
-            );
-
-
-        buffer.cursor.col =
-            ((args.length>1
-                ? args[1]
-                : 1)-1)
-            .clamp(
-              0,
-              buffer.cols-1,
-            );
-
-
+        _cursorPosition(args);
         break;
 
-
-
-
-
-
-
-      // Clear screen
       case 'J':
-
-        if(_value(args)==2){
-
-          buffer.clear();
-
-        }
-
+        _eraseDisplay(args);
         break;
 
-
-
-
-
-
-
-      // Clear line
       case 'K':
+        _eraseLine(args);
+        break;
 
+      case 'm':
+        _graphicsMode(args);
+        break;
+
+      case 'h':
+        _modeSet(args);
+        break;
+
+      case 'l':
+        _modeReset(args);
+        break;
+    }
+  }
+
+    int _value(
+    List<int> args,
+  ) {
+    if (args.isEmpty) {
+      return 1;
+    }
+
+    if (args.first == 0) {
+      return 1;
+    }
+
+    return args.first;
+  }
+
+  void _cursorUp(
+    List<int> args,
+  ) {
+    cursorRow -= _value(args);
+  }
+
+  void _cursorDown(
+    List<int> args,
+  ) {
+    cursorRow += _value(args);
+  }
+
+  void _cursorForward(
+    List<int> args,
+  ) {
+    cursorCol += _value(args);
+  }
+
+  void _cursorBack(
+    List<int> args,
+  ) {
+    cursorCol -= _value(args);
+  }
+
+  void _cursorPosition(
+    List<int> args,
+  ) {
+    cursorRow =
+        (args.isNotEmpty
+                ? args[0]
+                : 1) -
+            1;
+
+    cursorCol =
+        (args.length > 1
+                ? args[1]
+                : 1) -
+            1;
+  }
+
+    // ==========================
+  // Erase Display
+  // ==========================
+
+  void _eraseDisplay(
+    List<int> args,
+  ) {
+    final mode =
+        args.isEmpty ? 0 : args.first;
+
+    switch (mode) {
+      case 0:
+        buffer.eraseToEndOfScreen();
+        break;
+
+      case 1:
+        buffer.eraseToBeginningOfScreen();
+        break;
+
+      case 2:
+      case 3:
+        buffer.clear();
+        break;
+    }
+  }
+
+  // ==========================
+  // Erase Line
+  // ==========================
+
+  void _eraseLine(
+    List<int> args,
+  ) {
+    final mode =
+        args.isEmpty ? 0 : args.first;
+
+    switch (mode) {
+      case 0:
+        buffer.eraseToEndOfLine();
+        break;
+
+      case 1:
+        buffer.eraseToBeginningOfLine();
+        break;
+
+      case 2:
         buffer.clearLine(
           buffer.cursor.row,
         );
-
         break;
-
-
-
-
-
-
-
-      // SGR Color
-      case 'm':
-
-        _style(
-          args,
-        );
-
-        break;
-
-
-
-
-      // Cursor visibility
-      case 'h':
-
-        if(args.contains(25)){
-
-          cursorVisible=true;
-
-        }
-
-        break;
-
-
-
-
-      case 'l':
-
-        if(args.contains(25)){
-
-          cursorVisible=false;
-
-        }
-
-        break;
-
-
     }
-
   }
 
+  // ==========================
+  // SGR (Graphics Mode)
+  // ==========================
 
-
-
-
-
-
-
-  int _value(
+  void _graphicsMode(
     List<int> args,
-  ){
-
-    if(args.isEmpty ||
-       args[0]==0){
-
-      return 1;
-
-    }
-
-
-    return args[0];
-
-  }
-
-
-
-
-
-
-
-
-
-  void _style(
-    List<int> args,
-  ){
-
-
-    if(args.isEmpty){
-
-      buffer.currentForeground=37;
-
-      buffer.currentBackground=40;
-
+  ) {
+    if (args.isEmpty) {
+      buffer.resetStyle();
       return;
-
     }
 
+    for (final code in args) {
+      switch (code) {
+        case 0:
+          buffer.resetStyle();
+          break;
 
+        case 1:
+          buffer.bold = true;
+          break;
 
+        case 4:
+          buffer.underline = true;
+          break;
 
+        case 7:
+          buffer.inverse = true;
+          break;
 
-    for(final a in args){
+        case 22:
+          buffer.bold = false;
+          break;
 
+        case 24:
+          buffer.underline = false;
+          break;
 
-      if(a>=30 && a<=37){
+        case 27:
+          buffer.inverse = false;
+          break;
 
-        buffer.currentForeground=a;
+        default:
+          if (code >= 30 && code <= 37) {
+            buffer.currentForeground = code;
+          }
 
+          if (code >= 40 && code <= 47) {
+            buffer.currentBackground = code;
+          }
+
+          if (code >= 90 && code <= 97) {
+            buffer.currentForeground = code;
+          }
+
+          if (code >= 100 && code <= 107) {
+            buffer.currentBackground = code;
+          }
       }
-
-
-      if(a>=40 && a<=47){
-
-        buffer.currentBackground=a;
-
-      }
-
-
-
-      if(a==1){
-
-        buffer.bold=true;
-
-      }
-
-
-
-      if(a==4){
-
-        buffer.underline=true;
-
-      }
-
-
-
-      if(a==7){
-
-        buffer.inverse=true;
-
-      }
-
-
-
     }
-
-
   }
 
+  // ==========================
+  // DEC Mode Set / Reset
+  // ==========================
 
+  void _modeSet(
+    List<int> args,
+  ) {
+    if (args.contains(25)) {
+      cursorVisible = true;
+    }
+  }
+
+  void _modeReset(
+    List<int> args,
+  ) {
+    if (args.contains(25)) {
+      cursorVisible = false;
+    }
+  }
+
+    // ==========================
+  // Save / Restore Cursor
+  // ==========================
+
+  int _savedRow = 0;
+  int _savedCol = 0;
+
+  void saveCursor() {
+    _savedRow = cursorRow;
+    _savedCol = cursorCol;
+  }
+
+  void restoreCursor() {
+    cursorRow = _savedRow;
+    cursorCol = _savedCol;
+  }
+
+  // ==========================
+  // Scroll
+  // ==========================
+
+  void scrollUp(
+    int count,
+  ) {
+    for (int i = 0; i < count; i++) {
+      buffer.scrollUp();
+    }
+  }
+
+  void scrollDown(
+    int count,
+  ) {
+    for (int i = 0; i < count; i++) {
+      buffer.lines.insert(
+        0,
+        List.generate(
+          buffer.cols,
+          (_) => TerminalCell(),
+        ),
+      );
+
+      if (buffer.lines.length > buffer.rows) {
+        buffer.lines.removeLast();
+      }
+    }
+  }
+
+  // ==========================
+  // Insert/Delete Line
+  // ==========================
+
+  void insertLine() {
+    buffer.lines.insert(
+      cursorRow,
+      List.generate(
+        buffer.cols,
+        (_) => TerminalCell(),
+      ),
+    );
+
+    if (buffer.lines.length > buffer.rows) {
+      buffer.lines.removeLast();
+    }
+  }
+
+  void deleteLine() {
+    if (cursorRow >= buffer.rows) {
+      return;
+    }
+
+    buffer.lines.removeAt(cursorRow);
+
+    buffer.lines.add(
+      List.generate(
+        buffer.cols,
+        (_) => TerminalCell(),
+      ),
+    );
+  }
+
+  // ==========================
+  // Insert/Delete Character
+  // ==========================
+
+  void insertCharacter() {
+    buffer.insertChar();
+  }
+
+  void deleteCharacter() {
+    buffer.deleteChar();
+  }
+
+  // ==========================
+  // Device Status Report
+  // ==========================
+
+  String deviceStatus() {
+    return '\u001B[0n';
+  }
+
+  // ==========================
+  // Reset Terminal
+  // ==========================
+
+  void reset() {
+    buffer.clear();
+    cursorVisible = true;
+
+    _savedRow = 0;
+    _savedCol = 0;
+  }
 }
