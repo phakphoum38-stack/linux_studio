@@ -1,64 +1,76 @@
-import 'dart:async';
-
 class Cursor {
-  int row;
-  int col;
-
-  bool visible;
-  bool blinking;
-
-  Timer? _blinkTimer;
-
   Cursor({
     this.row = 0,
     this.col = 0,
-    this.visible = true,
-    this.blinking = true,
   });
+
+  int row;
+  int col;
 
   void reset() {
     row = 0;
     col = 0;
   }
 
-  void set(int r, int c) {
-    row = r;
-    col = c;
+  void moveTo(
+    int newRow,
+    int newCol,
+  ) {
+    row = newRow;
+    col = newCol;
   }
 
-  void startBlink(Function() onTick) {
-    _blinkTimer?.cancel();
+  void moveUp([
+    int count = 1,
+  ]) {
+    row -= count;
 
-    if (!blinking) return;
+    if (row < 0) {
+      row = 0;
+    }
+  }
 
-    _blinkTimer = Timer.periodic(
-      const Duration(milliseconds: 500),
-      (_) {
-        visible = !visible;
-        onTick();
-      },
+  void moveDown(
+    int maxRows, [
+    int count = 1,
+  ]) {
+    row += count;
+
+    if (row >= maxRows) {
+      row = maxRows - 1;
+    }
+  }
+
+  void moveLeft([
+    int count = 1,
+  ]) {
+    col -= count;
+
+    if (col < 0) {
+      col = 0;
+    }
+  }
+
+  void moveRight(
+    int maxCols, [
+    int count = 1,
+  ]) {
+    col += count;
+
+    if (col >= maxCols) {
+      col = maxCols - 1;
+    }
+  }
+
+  Cursor copy() {
+    return Cursor(
+      row: row,
+      col: col,
     );
   }
 
-  void stopBlink() {
-    _blinkTimer?.cancel();
-    _blinkTimer = null;
-    visible = true;
-  }
-
-  void moveLeft() {
-    if (col > 0) col--;
-  }
-
-  void moveRight(int maxCols) {
-    if (col < maxCols - 1) col++;
-  }
-
-  void moveUp() {
-    if (row > 0) row--;
-  }
-
-  void moveDown(int maxRows) {
-    if (row < maxRows - 1) row++;
+  @override
+  String toString() {
+    return 'Cursor(row: $row, col: $col)';
   }
 }
