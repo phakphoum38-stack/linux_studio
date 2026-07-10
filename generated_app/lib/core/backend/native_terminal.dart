@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'dart:ffi';
-
-import 'package:ffi/ffi.dart';
 
 import 'terminal_ffi.dart';
 
@@ -17,38 +14,38 @@ class NativeTerminal {
   Pointer<Void>? _handle;
 
   bool get isOpen =>
-      _handle != null && _handle != nullptr;
+      _handle != null &&
+      _handle != nullptr;
 
   bool open() {
     if (isOpen) {
       return true;
     }
 
-    _handle = TerminalFFI.instance.create(
-      rows,
-      cols,
-    );
+    try {
+      _handle = TerminalFFI.instance.createSession(
+        rows: rows,
+        cols: cols,
+      );
 
-    return isOpen;
+      return isOpen;
+    } catch (_) {
+      _handle = nullptr;
+      return false;
+    }
   }
 
-  bool write(String text) {
+  bool write(
+    String text,
+  ) {
     if (!isOpen) {
       return false;
     }
 
-    final ptr = text.toNativeUtf8();
-
-    try {
-      return TerminalFFI.instance.write(
-            _handle!,
-            ptr,
-            utf8.encode(text).length,
-          ) !=
-          0;
-    } finally {
-      malloc.free(ptr);
-    }
+    return TerminalFFI.instance.writeText(
+      _handle!,
+      text,
+    );
   }
 
   String read([
@@ -58,25 +55,10 @@ class NativeTerminal {
       return '';
     }
 
-    final buffer = calloc<Uint8>(bufferSize);
-
-    try {
-      final length = TerminalFFI.instance.read(
-        _handle!,
-        buffer,
-        bufferSize,
-      );
-
-      if (length <= 0) {
-        return '';
-      }
-
-      return utf8.decode(
-        buffer.asTypedList(length),
-      );
-    } finally {
-      calloc.free(buffer);
-    }
+    return TerminalFFI.instance.readText(
+      _handle!,
+      bufferSize: bufferSize,
+    );
   }
 
   bool resize({
@@ -87,12 +69,11 @@ class NativeTerminal {
       return false;
     }
 
-    return TerminalFFI.instance.resize(
-          _handle!,
-          rows,
-          cols,
-        ) !=
-        0;
+    return TerminalFFI.instance.resizeTerminal(
+      _handle!,
+      rows: rows,
+      cols: cols,
+    );
   }
 
   void close() {
@@ -100,10 +81,14 @@ class NativeTerminal {
       return;
     }
 
-    TerminalFFI.instance.close(
+    TerminalFFI.instance.closeTerminal(
       _handle!,
     );
 
     _handle = nullptr;
+  }
+
+  void dispose() {
+    close();
   }
 }
