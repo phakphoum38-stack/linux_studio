@@ -3,11 +3,6 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
-
-//
-// Native Types
-//
-
 typedef TerminalCreateNative = Pointer<Void> Function(
   Int32 rows,
   Int32 cols,
@@ -18,441 +13,109 @@ typedef TerminalCreate = Pointer<Void> Function(
   int cols,
 );
 
-
-
-typedef TerminalWriteNative = Bool Function(
-  Pointer<Void> handle,
-  Pointer<Utf8> data,
-  Int32 length,
+typedef TerminalWriteNative = Uint8 Function(
+  Pointer<Void>,
+  Pointer<Utf8>,
+  Int32,
 );
 
-typedef TerminalWrite = bool Function(
-  Pointer<Void> handle,
-  Pointer<Utf8> data,
-  int length,
+typedef TerminalWrite = int Function(
+  Pointer<Void>,
+  Pointer<Utf8>,
+  int,
 );
-
-
 
 typedef TerminalReadNative = Int32 Function(
-  Pointer<Void> handle,
-  Pointer<Uint8> buffer,
-  Int32 size,
+  Pointer<Void>,
+  Pointer<Uint8>,
+  Int32,
 );
 
 typedef TerminalRead = int Function(
-  Pointer<Void> handle,
-  Pointer<Uint8> buffer,
-  int size,
+  Pointer<Void>,
+  Pointer<Uint8>,
+  int,
 );
 
-
-
-typedef TerminalResizeNative = Bool Function(
-  Pointer<Void> handle,
-  Int32 rows,
-  Int32 cols,
+typedef TerminalResizeNative = Uint8 Function(
+  Pointer<Void>,
+  Int32,
+  Int32,
 );
 
-typedef TerminalResize = bool Function(
-  Pointer<Void> handle,
-  int rows,
-  int cols,
+typedef TerminalResize = int Function(
+  Pointer<Void>,
+  int,
+  int,
 );
-
-
 
 typedef TerminalCloseNative = Void Function(
-  Pointer<Void> handle,
+  Pointer<Void>,
 );
 
 typedef TerminalClose = void Function(
-  Pointer<Void> handle,
+  Pointer<Void>,
 );
 
-
-
-//
-// Exception
-//
-
-class TerminalFFIException implements Exception {
-
-  final String message;
-
-  TerminalFFIException(
-    this.message,
-  );
-
-
-  @override
-  String toString(){
-
-    return
-      'TerminalFFIException: $message';
-
-  }
-
-}
-
-
-
-//
-// Terminal FFI Loader
-//
-
 class TerminalFFI {
-
-
-  TerminalFFI._();
-
-
+  TerminalFFI._() {
+    _load();
+  }
 
   static final TerminalFFI instance =
       TerminalFFI._();
 
+  late final DynamicLibrary _dll;
 
+  late final TerminalCreate create;
 
-  DynamicLibrary? _library;
+  late final TerminalWrite write;
 
+  late final TerminalRead read;
 
+  late final TerminalResize resize;
 
-  bool _loaded = false;
+  late final TerminalClose close;
 
-
-
-  bool get isLoaded =>
-      _loaded;
-
-
-
-  late TerminalCreate create;
-
-  late TerminalWrite write;
-
-  late TerminalRead read;
-
-  late TerminalResize resize;
-
-  late TerminalClose close;
-
-
-
-
-  //
-  // Load DLL
-  //
-
-  void load(){
-
-
-    if(_loaded){
-
-      return;
-
-    }
-
-
-
-    if(!Platform.isWindows){
-
-      throw TerminalFFIException(
-        'ConPTY only available on Windows',
+  void _load() {
+    if (!Platform.isWindows) {
+      throw UnsupportedError(
+        'Windows only',
       );
-
     }
 
-
-
-    _library =
-        _openLibrary();
-
-
-
-    create =
-        _library!
-            .lookupFunction<
-              TerminalCreateNative,
-              TerminalCreate
-            >(
-              'terminal_create',
-            );
-
-
-
-    write =
-        _library!
-            .lookupFunction<
-              TerminalWriteNative,
-              TerminalWrite
-            >(
-              'terminal_write',
-            );
-
-
-
-    read =
-        _library!
-            .lookupFunction<
-              TerminalReadNative,
-              TerminalRead
-            >(
-              'terminal_read',
-            );
-
-
-
-    resize =
-        _library!
-            .lookupFunction<
-              TerminalResizeNative,
-              TerminalResize
-            >(
-              'terminal_resize',
-            );
-
-
-
-    close =
-        _library!
-            .lookupFunction<
-              TerminalCloseNative,
-              TerminalClose
-            >(
-              'terminal_close',
-            );
-
-
-
-    _loaded = true;
-
-
-  }
-
-
-
-
-  DynamicLibrary _openLibrary(){
-
-
-    final names = [
-
+    _dll = DynamicLibrary.open(
       'terminal_api.dll',
-
-      'terminal.dll',
-
-    ];
-
-
-
-    for(final name in names){
-
-
-      try {
-
-
-        return DynamicLibrary.open(
-          name,
-        );
-
-
-      }
-
-      catch(_){}
-
-
-
-    }
-
-
-
-
-    throw TerminalFFIException(
-      'terminal_api.dll not found',
     );
 
-
-  }
-
-    //
-  // Safe wrappers
-  //
-
-  Pointer<Void> createSession({
-    required int rows,
-    required int cols,
-  }) {
-    if (!_loaded) {
-      load();
-    }
-
-    final handle = create(
-      rows,
-      cols,
+    create = _dll.lookupFunction<
+        TerminalCreateNative,
+        TerminalCreate>(
+      'terminal_create',
     );
 
-    if (handle == nullptr) {
-      throw TerminalFFIException(
-        'terminal_create() failed.',
-      );
-    }
-
-    return handle;
-  }
-
-  bool writeText(
-    Pointer<Void> handle,
-    String text,
-  ) {
-    if (!_loaded) {
-      load();
-    }
-
-    if (handle == nullptr) {
-      return false;
-    }
-
-    final ptr =
-        text.toNativeUtf8();
-
-    try {
-      return write(
-        handle,
-        ptr,
-        text.length,
-      );
-    } finally {
-      malloc.free(ptr);
-    }
-  }
-
-  String readText(
-    Pointer<Void> handle, {
-    int bufferSize = 8192,
-  }) {
-    if (!_loaded) {
-      load();
-    }
-
-    if (handle == nullptr) {
-      return '';
-    }
-
-    final buffer =
-        calloc<Uint8>(bufferSize);
-
-    try {
-      final length = read(
-        handle,
-        buffer,
-        bufferSize,
-      );
-
-      if (length <= 0) {
-        return '';
-      }
-
-      return String.fromCharCodes(
-        buffer.asTypedList(length),
-      );
-    } finally {
-      calloc.free(buffer);
-    }
-  }
-
-  bool resizeTerminal(
-    Pointer<Void> handle, {
-    required int rows,
-    required int cols,
-  }) {
-    if (!_loaded) {
-      load();
-    }
-
-    if (handle == nullptr) {
-      return false;
-    }
-
-    return resize(
-      handle,
-      rows,
-      cols,
+    write = _dll.lookupFunction<
+        TerminalWriteNative,
+        TerminalWrite>(
+      'terminal_write',
     );
-  }
 
-  void closeTerminal(
-    Pointer<Void> handle,
-  ) {
-    if (!_loaded) {
-      return;
-    }
+    read = _dll.lookupFunction<
+        TerminalReadNative,
+        TerminalRead>(
+      'terminal_read',
+    );
 
-    if (handle == nullptr) {
-      return;
-    }
+    resize = _dll.lookupFunction<
+        TerminalResizeNative,
+        TerminalResize>(
+      'terminal_resize',
+    );
 
-    close(handle);
-  }
-
-    //
-  // Helpers
-  //
-
-  bool get isAvailable {
-    if (!Platform.isWindows) {
-      return false;
-    }
-
-    try {
-      if (!_loaded) {
-        load();
-      }
-
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  String get libraryName {
-    if (!Platform.isWindows) {
-      return 'Unsupported';
-    }
-
-    return 'terminal_api.dll';
-  }
-
-  void reload() {
-    _loaded = false;
-    _library = null;
-    load();
-  }
-
-  void unload() {
-    _loaded = false;
-    _library = null;
-  }
-
-  bool validateHandle(
-    Pointer<Void>? handle,
-  ) {
-    return handle != null &&
-        handle != nullptr;
-  }
-
-  void ensureLoaded() {
-    if (!_loaded) {
-      load();
-    }
-  }
-
-  void ensureHandle(
-    Pointer<Void>? handle,
-  ) {
-    if (!validateHandle(handle)) {
-      throw TerminalFFIException(
-        'Invalid terminal handle.',
-      );
-    }
+    close = _dll.lookupFunction<
+        TerminalCloseNative,
+        TerminalClose>(
+      'terminal_close',
+    );
   }
 }
