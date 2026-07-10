@@ -1,25 +1,27 @@
 class AnsiEvent {}
 
 class TextEvent extends AnsiEvent {
-  TextEvent(this.text);
+  TextEvent(
+    this.text,
+  );
 
   final String text;
 }
 
 class CsiEvent extends AnsiEvent {
-  CsiEvent(
-    this.command,
-    this.args,
-  );
+  CsiEvent({
+    required this.command,
+    required this.args,
+  });
 
   final String command;
   final List<int> args;
 }
 
 class AnsiCsiParser {
-  const AnsiCsiParser();
-
-  List<AnsiEvent> parse(String input) {
+  List<AnsiEvent> parse(
+    String input,
+  ) {
     final events = <AnsiEvent>[];
 
     final text = StringBuffer();
@@ -27,11 +29,9 @@ class AnsiCsiParser {
     int i = 0;
 
     while (i < input.length) {
-      final ch = input.codeUnitAt(i);
+      final ch = input[i];
 
-      // ESC
-      if (ch == 0x1B) {
-        // Flush text ก่อน
+      if (ch == '\x1B') {
         if (text.isNotEmpty) {
           events.add(
             TextEvent(
@@ -42,39 +42,42 @@ class AnsiCsiParser {
           text.clear();
         }
 
+        if (i + 1 >= input.length) {
+          break;
+        }
+
         // CSI
-        if (i + 1 < input.length &&
-            input.codeUnitAt(i + 1) == 0x5B) {
+        if (input[i + 1] == '[') {
           i += 2;
 
-          final buffer = StringBuffer();
+          final sequence = StringBuffer();
 
           while (i < input.length) {
             final c = input[i];
 
-            final code = c.codeUnitAt(0);
-
-            if (code >= 0x40 && code <= 0x7E) {
-              final args = _parseArgs(
-                buffer.toString(),
+            if (_isCommand(c)) {
+              final args =
+                  _parseArguments(
+                sequence.toString(),
               );
 
               events.add(
                 CsiEvent(
-                  c,
-                  args,
+                  command: c,
+                  args: args,
                 ),
               );
 
               break;
             }
 
-            buffer.write(c);
+            sequence.write(c);
+
             i++;
           }
         }
       } else {
-        text.writeCharCode(ch);
+        text.write(ch);
       }
 
       i++;
@@ -91,17 +94,28 @@ class AnsiCsiParser {
     return events;
   }
 
-  List<int> _parseArgs(
-    String source,
+  bool _isCommand(
+    String c,
   ) {
-    if (source.isEmpty) {
-      return const [];
+    return RegExp(
+      r'[A-Za-z@`~]',
+    ).hasMatch(c);
+  }
+
+  List<int> _parseArguments(
+    String input,
+  ) {
+    if (input.isEmpty) {
+      return [];
     }
 
-    final parts = source.split(';');
-
-    return parts.map((e) {
-      return int.tryParse(e) ?? 0;
-    }).toList();
+    return input
+        .split(';')
+        .map(
+          (e) =>
+              int.tryParse(e) ??
+              0,
+        )
+        .toList();
   }
 }
