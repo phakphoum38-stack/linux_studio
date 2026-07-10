@@ -273,3 +273,186 @@ class TerminalFFI {
 
 
   }
+
+    //
+  // Safe wrappers
+  //
+
+  Pointer<Void> createSession({
+    required int rows,
+    required int cols,
+  }) {
+    if (!_loaded) {
+      load();
+    }
+
+    final handle = create(
+      rows,
+      cols,
+    );
+
+    if (handle == nullptr) {
+      throw TerminalFFIException(
+        'terminal_create() failed.',
+      );
+    }
+
+    return handle;
+  }
+
+  bool writeText(
+    Pointer<Void> handle,
+    String text,
+  ) {
+    if (!_loaded) {
+      load();
+    }
+
+    if (handle == nullptr) {
+      return false;
+    }
+
+    final ptr =
+        text.toNativeUtf8();
+
+    try {
+      return write(
+        handle,
+        ptr,
+        text.length,
+      );
+    } finally {
+      malloc.free(ptr);
+    }
+  }
+
+  String readText(
+    Pointer<Void> handle, {
+    int bufferSize = 8192,
+  }) {
+    if (!_loaded) {
+      load();
+    }
+
+    if (handle == nullptr) {
+      return '';
+    }
+
+    final buffer =
+        calloc<Uint8>(bufferSize);
+
+    try {
+      final length = read(
+        handle,
+        buffer,
+        bufferSize,
+      );
+
+      if (length <= 0) {
+        return '';
+      }
+
+      return String.fromCharCodes(
+        buffer.asTypedList(length),
+      );
+    } finally {
+      calloc.free(buffer);
+    }
+  }
+
+  bool resizeTerminal(
+    Pointer<Void> handle, {
+    required int rows,
+    required int cols,
+  }) {
+    if (!_loaded) {
+      load();
+    }
+
+    if (handle == nullptr) {
+      return false;
+    }
+
+    return resize(
+      handle,
+      rows,
+      cols,
+    );
+  }
+
+  void closeTerminal(
+    Pointer<Void> handle,
+  ) {
+    if (!_loaded) {
+      return;
+    }
+
+    if (handle == nullptr) {
+      return;
+    }
+
+    close(handle);
+  }
+
+    //
+  // Helpers
+  //
+
+  bool get isAvailable {
+    if (!Platform.isWindows) {
+      return false;
+    }
+
+    try {
+      if (!_loaded) {
+        load();
+      }
+
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String get libraryName {
+    if (!Platform.isWindows) {
+      return 'Unsupported';
+    }
+
+    return 'terminal_api.dll';
+  }
+
+  void reload() {
+    _loaded = false;
+    _library = null;
+    load();
+  }
+
+  void unload() {
+    _loaded = false;
+    _library = null;
+  }
+
+  bool validateHandle(
+    Pointer<Void>? handle,
+  ) {
+    return handle != null &&
+        handle != nullptr;
+  }
+
+  void ensureLoaded() {
+    if (!_loaded) {
+      load();
+    }
+  }
+
+  void ensureHandle(
+    Pointer<Void>? handle,
+  ) {
+    if (!validateHandle(handle)) {
+      throw TerminalFFIException(
+        'Invalid terminal handle.',
+      );
+    }
+  }
+}
