@@ -397,3 +397,4 @@ class VT100StateMachine {
     _savedCol = 0;
   }
 }
+}
