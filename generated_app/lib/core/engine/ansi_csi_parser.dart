@@ -1,188 +1,107 @@
 class AnsiEvent {}
 
 class TextEvent extends AnsiEvent {
-  final String text;
-
   TextEvent(this.text);
+
+  final String text;
 }
 
-
 class CsiEvent extends AnsiEvent {
-
-  final String command;
-
-  final List<int> args;
-
-
   CsiEvent(
     this.command,
     this.args,
   );
+
+  final String command;
+  final List<int> args;
 }
 
-
-
 class AnsiCsiParser {
+  const AnsiCsiParser();
 
-
-  String _buffer = '';
-
-
-
-  List<AnsiEvent> parse(
-    String input,
-  ){
-
+  List<AnsiEvent> parse(String input) {
     final events = <AnsiEvent>[];
 
+    final text = StringBuffer();
 
-    _buffer += input;
+    int i = 0;
 
+    while (i < input.length) {
+      final ch = input.codeUnitAt(i);
 
-
-    while(_buffer.isNotEmpty){
-
-
-      final esc =
-          _buffer.indexOf('\x1b');
-
-
-
-      if(esc == -1){
-
-        events.add(
-          TextEvent(
-            _buffer,
-          ),
-        );
-
-        _buffer='';
-
-        break;
-
-      }
-
-
-
-
-      if(esc > 0){
-
-        events.add(
-
-          TextEvent(
-            _buffer.substring(
-              0,
-              esc,
+      // ESC
+      if (ch == 0x1B) {
+        // Flush text ก่อน
+        if (text.isNotEmpty) {
+          events.add(
+            TextEvent(
+              text.toString(),
             ),
-          ),
-
-        );
-
-
-        _buffer =
-            _buffer.substring(
-              esc,
-            );
-
-      }
-
-
-
-
-
-      if(
-        !_buffer.startsWith(
-          '\x1b['
-        )
-      ){
-
-        _buffer =
-            _buffer.substring(1);
-
-        continue;
-
-      }
-
-
-
-
-
-
-      final match =
-          RegExp(
-            r'^\x1b\[([0-9;?]*)([A-Za-z])'
-          )
-          .firstMatch(
-            _buffer,
           );
 
+          text.clear();
+        }
 
+        // CSI
+        if (i + 1 < input.length &&
+            input.codeUnitAt(i + 1) == 0x5B) {
+          i += 2;
 
-      if(match == null){
+          final buffer = StringBuffer();
 
-        break;
+          while (i < input.length) {
+            final c = input[i];
 
+            final code = c.codeUnitAt(0);
+
+            if (code >= 0x40 && code <= 0x7E) {
+              final args = _parseArgs(
+                buffer.toString(),
+              );
+
+              events.add(
+                CsiEvent(
+                  c,
+                  args,
+                ),
+              );
+
+              break;
+            }
+
+            buffer.write(c);
+            i++;
+          }
+        }
+      } else {
+        text.writeCharCode(ch);
       }
 
-
-
-
-
-
-      final rawArgs =
-          match.group(1)!;
-
-
-      final command =
-          match.group(2)!;
-
-
-
-      final args =
-          rawArgs.isEmpty
-
-          ? <int>[]
-
-          :
-
-          rawArgs
-          .replaceAll(
-            '?',
-            '',
-          )
-          .split(';')
-          .map(
-            (e)=>
-              int.tryParse(e) ?? 0,
-          )
-          .toList();
-
-
-
-
-
-      events.add(
-
-        CsiEvent(
-          command,
-          args,
-        ),
-
-      );
-
-
-
-
-      _buffer =
-          _buffer.substring(
-            match.end,
-          );
-
+      i++;
     }
 
+    if (text.isNotEmpty) {
+      events.add(
+        TextEvent(
+          text.toString(),
+        ),
+      );
+    }
 
     return events;
-
   }
 
+  List<int> _parseArgs(
+    String source,
+  ) {
+    if (source.isEmpty) {
+      return const [];
+    }
+
+    final parts = source.split(';');
+
+    return parts.map((e) {
+      return int.tryParse(e) ?? 0;
+    }).toList();
+  }
 }
