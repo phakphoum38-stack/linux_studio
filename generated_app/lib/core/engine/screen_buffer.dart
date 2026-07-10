@@ -288,7 +288,7 @@ class ScreenBuffer {
     }
   }
 
-  /// ลบตั้งแต่ต้นบรรทัดถึง Cursor
+    /// ลบตั้งแต่ต้นบรรทัดถึง Cursor
   void eraseToBeginningOfLine() {
     if (cursor.row < 0 || cursor.row >= rows) {
       return;
@@ -302,16 +302,16 @@ class ScreenBuffer {
     }
   }
 
-  /// ลบตั้งแต่ Cursor ถึงท้ายจอ
-  void eraseToEndOfScreen() {
-    eraseToEndOfLine();
+    /// ลบตั้งแต่ Cursor ถึงท้ายจอ
+    void eraseToEndOfScreen() {
+       eraseToEndOfLine();
 
-    for (int r = cursor.row + 1; r < rows; r++) {
-      clearLine(r);
-    }
-  }
+       for (int r = cursor.row + 1; r < rows; r++) {
+         clearLine(r);
+       }
+     }
 
-  /// ลบตั้งแต่ต้นจอถึง Cursor
+     /// ลบตั้งแต่ต้นจอถึง Cursor
   void eraseToBeginningOfScreen() {
     for (int r = 0; r < cursor.row; r++) {
       clearLine(r);
@@ -351,5 +351,11 @@ class ScreenBuffer {
     inverse = false;
   }
 }
+
+
+  
+
+
+  
 
   
