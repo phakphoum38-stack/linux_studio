@@ -1,12 +1,12 @@
 #include "conpty.h"
 
-
 #ifdef _WIN32
+
+#include <windows.h>
 
 
 
 ConPTY::ConPTY()
-
 {
 
     hpc = nullptr;
@@ -27,15 +27,10 @@ ConPTY::ConPTY()
 
 
 
-
 ConPTY::~ConPTY()
-
 {
-
     close();
-
 }
-
 
 
 
@@ -54,26 +49,11 @@ bool ConPTY::create(
     PipeManager* manager
 
 )
-
 {
 
-
     if(manager == nullptr)
-
     {
-
         return false;
-
-    }
-
-
-
-    if(running)
-
-    {
-
-        close();
-
     }
 
 
@@ -90,8 +70,8 @@ bool ConPTY::create(
 
 
 
-    HRESULT result =
 
+    HRESULT hr =
         CreatePseudoConsole(
 
             size,
@@ -110,17 +90,16 @@ bool ConPTY::create(
 
 
 
-    if(
 
-        SUCCEEDED(result)
-
-    )
-
+    if(FAILED(hr))
     {
 
-        running = true;
+        hpc = nullptr;
 
-        return true;
+        pipe = nullptr;
+
+
+        return false;
 
     }
 
@@ -129,12 +108,12 @@ bool ConPTY::create(
 
 
 
-    hpc = nullptr;
 
-    pipe = nullptr;
+    running = true;
 
 
-    return false;
+
+    return true;
 
 
 }
@@ -154,30 +133,23 @@ bool ConPTY::resize(
     short rows
 
 )
-
 {
 
 
     if(
-
-        !hpc ||
-
-        !running
-
+        !running ||
+        hpc == nullptr
     )
-
     {
-
         return false;
-
     }
 
 
 
 
 
-    COORD newSize;
 
+    COORD newSize;
 
 
     newSize.X = cols;
@@ -188,8 +160,9 @@ bool ConPTY::resize(
 
 
 
-    HRESULT result =
 
+
+    HRESULT hr =
         ResizePseudoConsole(
 
             hpc,
@@ -203,26 +176,22 @@ bool ConPTY::resize(
 
 
 
-
-    if(
-
-        SUCCEEDED(result)
-
-    )
-
+    if(FAILED(hr))
     {
-
-        size = newSize;
-
-        return true;
-
+        return false;
     }
 
 
 
 
 
-    return false;
+
+
+    size = newSize;
+
+
+
+    return true;
 
 
 }
@@ -236,18 +205,14 @@ bool ConPTY::resize(
 
 
 void ConPTY::close()
-
 {
 
 
     if(hpc)
-
     {
 
         ClosePseudoConsole(
-
             hpc
-
         );
 
 
@@ -259,9 +224,7 @@ void ConPTY::close()
 
 
 
-
     pipe = nullptr;
-
 
 
     running = false;
@@ -285,7 +248,6 @@ void ConPTY::close()
 
 
 bool ConPTY::isRunning() const
-
 {
 
     return running;
@@ -301,14 +263,11 @@ bool ConPTY::isRunning() const
 
 
 HPCON ConPTY::getHandle() const
-
 {
 
     return hpc;
 
 }
-
-
 
 
 
