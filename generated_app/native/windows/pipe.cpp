@@ -1,88 +1,173 @@
-#include "pipe.h"
-
+#include "process.h"
 
 #ifdef _WIN32
 
+#include <windows.h>
+#include <processthreadsapi.h>
 
-PipeManager::PipeManager()
+
+
+ProcessManager::ProcessManager()
 {
 
-    inputRead = nullptr;
-    inputWrite = nullptr;
+    ZeroMemory(
+        &processInfo,
+        sizeof(processInfo)
+    );
 
-    outputRead = nullptr;
-    outputWrite = nullptr;
+
+    running = false;
 
 }
 
 
 
-PipeManager::~PipeManager()
-{
 
+
+
+ProcessManager::~ProcessManager()
+{
     close();
-
 }
 
 
 
 
 
-bool PipeManager::createPipes()
 
+
+
+
+bool ProcessManager::start(
+
+    HPCON hpc,
+
+    const wchar_t* command
+
+)
 {
 
-    SECURITY_ATTRIBUTES sa{};
-
-    sa.nLength =
-        sizeof(SECURITY_ATTRIBUTES);
-
-    sa.lpSecurityDescriptor =
-        nullptr;
-
-    sa.bInheritHandle =
-        TRUE;
-
-
-
-    // stdin
-
-    if(
-        !CreatePipe(
-            &inputRead,
-            &inputWrite,
-            &sa,
-            0
-        )
-    )
+    if(hpc == nullptr)
     {
         return false;
     }
 
 
 
-    SetHandleInformation(
-        inputWrite,
-        HANDLE_FLAG_INHERIT,
-        0
+
+
+
+    if(command == nullptr)
+    {
+
+        command =
+            L"C:\\Windows\\System32\\cmd.exe";
+
+    }
+
+
+
+
+
+
+
+    STARTUPINFOEXW startup{};
+
+
+
+    startup.StartupInfo.cb =
+        sizeof(STARTUPINFOEXW);
+
+
+
+
+
+
+
+    SIZE_T attributeSize = 0;
+
+
+
+
+
+
+    InitializeProcThreadAttributeList(
+
+        nullptr,
+
+        1,
+
+        0,
+
+        &attributeSize
+
     );
 
 
 
 
-    // stdout
 
-    if(
-        !CreatePipe(
-            &outputRead,
-            &outputWrite,
-            &sa,
-            0
-        )
-    )
+
+
+
+    auto attributes =
+        reinterpret_cast<
+            LPPROC_THREAD_ATTRIBUTE_LIST
+        >(
+
+            HeapAlloc(
+
+                GetProcessHeap(),
+
+                0,
+
+                attributeSize
+
+            )
+
+        );
+
+
+
+
+
+
+
+
+    if(!attributes)
+    {
+        return false;
+    }
+
+
+
+
+
+
+
+    if(!InitializeProcThreadAttributeList(
+
+        attributes,
+
+        1,
+
+        0,
+
+        &attributeSize
+
+    ))
     {
 
-        close();
+        HeapFree(
+
+            GetProcessHeap(),
+
+            0,
+
+            attributes
+
+        );
+
 
         return false;
 
@@ -90,52 +175,217 @@ bool PipeManager::createPipes()
 
 
 
-    SetHandleInformation(
-        outputRead,
-        HANDLE_FLAG_INHERIT,
-        0
+
+
+
+
+
+
+
+    BOOL updated =
+
+        UpdateProcThreadAttribute(
+
+            attributes,
+
+            0,
+
+            PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+
+            hpc,
+
+            sizeof(HPCON),
+
+            nullptr,
+
+            nullptr
+
+        );
+
+
+
+
+
+
+
+    if(!updated)
+    {
+
+        DeleteProcThreadAttributeList(
+            attributes
+        );
+
+
+        HeapFree(
+            GetProcessHeap(),
+            0,
+            attributes
+        );
+
+
+        return false;
+
+    }
+
+
+
+
+
+
+
+
+
+    startup.lpAttributeList =
+        attributes;
+
+
+
+
+
+
+
+
+
+    wchar_t cmdLine[512];
+
+
+
+    wcscpy_s(
+
+        cmdLine,
+
+        512,
+
+        command
+
     );
+
+
+
+
+
+
+
+
+
+    BOOL result =
+
+        CreateProcessW(
+
+            nullptr,
+
+            cmdLine,
+
+            nullptr,
+
+            nullptr,
+
+            FALSE,
+
+            EXTENDED_STARTUPINFO_PRESENT |
+
+            CREATE_UNICODE_ENVIRONMENT,
+
+            nullptr,
+
+            nullptr,
+
+            &startup.StartupInfo,
+
+            &processInfo
+
+        );
+
+
+
+
+
+
+
+
+
+    DeleteProcThreadAttributeList(
+
+        attributes
+
+    );
+
+
+
+
+
+
+    HeapFree(
+
+        GetProcessHeap(),
+
+        0,
+
+        attributes
+
+    );
+
+
+
+
+
+
+
+
+
+    if(!result)
+    {
+        return false;
+    }
+
+
+
+
+
+
+
+    running = true;
 
 
 
     return true;
 
+
 }
 
 
 
 
-    //
-    // ConPTY output
-    //
 
-    if(!CreatePipe(
-        &outputRead,
-        &outputWrite,
-        &sa,
-        0))
+
+
+
+
+bool ProcessManager::isRunning() const
+{
+
+    if(!running)
     {
-
-        close();
-
         return false;
     }
 
 
 
-    //
-    // Parent reads
-    //
-
-    SetHandleInformation(
-        outputRead,
-        HANDLE_FLAG_INHERIT,
-        0
-    );
 
 
 
-    return true;
+    return
+
+        WaitForSingleObject(
+
+            processInfo.hProcess,
+
+            0
+
+        )
+        ==
+        WAIT_TIMEOUT;
+
 
 }
 
@@ -143,69 +393,86 @@ bool PipeManager::createPipes()
 
 
 
-HANDLE PipeManager::getInputRead() const
-{
-    return inputRead;
-}
-
-
-
-HANDLE PipeManager::getInputWrite() const
-{
-    return inputWrite;
-}
-
-
-
-HANDLE PipeManager::getOutputRead() const
-{
-    return outputRead;
-}
-
-
-
-HANDLE PipeManager::getOutputWrite() const
-{
-    return outputWrite;
-}
 
 
 
 
-
-void PipeManager::close()
+void ProcessManager::close()
 {
 
 
-    if(inputRead)
+    if(processInfo.hProcess)
     {
-        CloseHandle(inputRead);
-        inputRead=nullptr;
+
+
+        TerminateProcess(
+
+            processInfo.hProcess,
+
+            0
+
+        );
+
+
+
+        WaitForSingleObject(
+
+            processInfo.hProcess,
+
+            1000
+
+        );
+
+
+
+
+        CloseHandle(
+
+            processInfo.hProcess
+
+        );
+
+
+
+        processInfo.hProcess = nullptr;
+
+
     }
 
 
-    if(inputWrite)
+
+
+
+
+
+
+    if(processInfo.hThread)
     {
-        CloseHandle(inputWrite);
-        inputWrite=nullptr;
+
+
+        CloseHandle(
+
+            processInfo.hThread
+
+        );
+
+
+
+        processInfo.hThread = nullptr;
+
+
     }
 
 
-    if(outputRead)
-    {
-        CloseHandle(outputRead);
-        outputRead=nullptr;
-    }
 
 
-    if(outputWrite)
-    {
-        CloseHandle(outputWrite);
-        outputWrite=nullptr;
-    }
+
+
+    running = false;
 
 
 }
+
 
 
 
