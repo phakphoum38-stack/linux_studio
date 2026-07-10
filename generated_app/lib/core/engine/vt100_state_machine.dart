@@ -151,72 +151,72 @@ class VT100StateMachine {
   }
 
     // ==========================
-  // Erase Display
-  // ==========================
+    // Erase Display
+    // ==========================
 
-  void _eraseDisplay(
-    List<int> args,
-  ) {
-    final mode =
-        args.isEmpty ? 0 : args.first;
+    void _eraseDisplay(
+      List<int> args,
+    ) {
+      final mode =
+          args.isEmpty ? 0 : args.first;
 
-    switch (mode) {
-      case 0:
-        buffer.eraseToEndOfScreen();
-        break;
+      switch (mode) {
+        case 0:
+          buffer.eraseToEndOfScreen();
+          break;
 
-      case 1:
-        buffer.eraseToBeginningOfScreen();
-        break;
+        case 1:
+          buffer.eraseToBeginningOfScreen();
+          break;
 
-      case 2:
-      case 3:
-        buffer.clear();
-        break;
-    }
-  }
-
-  // ==========================
-  // Erase Line
-  // ==========================
-
-  void _eraseLine(
-    List<int> args,
-  ) {
-    final mode =
-        args.isEmpty ? 0 : args.first;
-
-    switch (mode) {
-      case 0:
-        buffer.eraseToEndOfLine();
-        break;
-
-      case 1:
-        buffer.eraseToBeginningOfLine();
-        break;
-
-      case 2:
-        buffer.clearLine(
-          buffer.cursor.row,
-        );
-        break;
-    }
-  }
-
-  // ==========================
-  // SGR (Graphics Mode)
-  // ==========================
-
-  void _graphicsMode(
-    List<int> args,
-  ) {
-    if (args.isEmpty) {
-      buffer.resetStyle();
-      return;
+        case 2:
+        case 3:
+          buffer.clear();
+          break;
+      }
     }
 
-    for (final code in args) {
-      switch (code) {
+    // ==========================
+    // Erase Line
+    // ==========================
+
+    void _eraseLine(
+      List<int> args,
+    ) {
+      final mode =
+          args.isEmpty ? 0 : args.first;
+
+      switch (mode) {
+        case 0:
+          buffer.eraseToEndOfLine();
+          break;
+
+        case 1:
+          buffer.eraseToBeginningOfLine();
+          break;
+
+        case 2:
+          buffer.clearLine(
+             buffer.cursor.row,
+          );
+          break;
+      }
+    }
+
+    // ==========================
+    // SGR (Graphics Mode)
+    // ==========================
+
+    void _graphicsMode(
+      List<int> args,
+    ) {
+      if (args.isEmpty) {
+        buffer.resetStyle();
+        return;
+      }
+
+       for (final code in args) {
+        switch (code) {
         case 0:
           buffer.resetStyle();
           break;
