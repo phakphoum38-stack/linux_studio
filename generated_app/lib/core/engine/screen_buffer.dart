@@ -65,3 +65,63 @@ class ScreenBuffer {
       ),
     );
   }
+
+    void clear() {
+    _allocate();
+
+    cursor.reset();
+
+    currentForeground = 37;
+    currentBackground = 40;
+
+    bold = false;
+    underline = false;
+    inverse = false;
+  }
+
+  void clearLine(
+    int row,
+  ) {
+    if (row < 0 || row >= rows) {
+      return;
+    }
+
+    lines[row] = List.generate(
+      cols,
+      (_) => TerminalCell(),
+    );
+  }
+
+  TerminalCell cellAt(
+    int row,
+    int col,
+  ) {
+    return lines[row][col];
+  }
+
+  void setCell(
+    int row,
+    int col,
+    TerminalCell cell,
+  ) {
+    lines[row][col] = cell;
+  }
+
+
+    void resize(
+    int newRows,
+    int newCols,
+  ) {
+    rows = newRows;
+    cols = newCols;
+
+    _allocate();
+
+    if (cursor.row >= rows) {
+      cursor.row = rows - 1;
+    }
+
+    if (cursor.col >= cols) {
+      cursor.col = cols - 1;
+    }
+  }
