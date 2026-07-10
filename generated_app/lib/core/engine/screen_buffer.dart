@@ -1,500 +1,149 @@
-import 'cursor_position.dart';
-import 'terminal_cell.dart';
-
+import 'cursor.dart';
 
 class ScreenBuffer {
-
-  final int rows;
-  final int cols;
-
-
-  late List<List<TerminalCell>> buffer;
-
-
-  final CursorPosition cursor =
-      CursorPosition();
-
-
-
-  int currentForeground = 37;
-  int currentBackground = 40;
-
-
-  bool bold = false;
-  bool italic = false;
-  bool underline = false;
-  bool inverse = false;
-
-
-
   ScreenBuffer({
     this.rows = 24,
     this.cols = 80,
   }) {
-    _initialize();
+    _allocate();
   }
 
+  final int rows;
+  final int cols;
 
+  final Cursor cursor = Cursor();
 
-  void _initialize() {
+  late List<StringBuffer> _lines;
 
-    buffer =
-        List.generate(
-          rows,
-          (_) => List.generate(
-            cols,
-            (_) => TerminalCell(),
-          ),
-        );
+  int currentForeground = 37;
+  int currentBackground = 40;
 
+  bool bold = false;
+  bool underline = false;
+  bool inverse = false;
+
+  void _allocate() {
+    _lines = List.generate(
+      rows,
+      (_) => StringBuffer(),
+    );
   }
 
-
-
-  int get width => cols;
-
-  int get height => rows;
-
-
-  int get currentFg =>
-      currentForeground;
-
-
-  set currentFg(int value) {
-    currentForeground = value;
-  }
-
-
-
-  int get currentBg =>
-      currentBackground;
-
-
-  set currentBg(int value) {
-    currentBackground = value;
-  }
-
-
-
-  bool inBounds(
-    int row,
-    int col,
-  ) {
-
-    return row >= 0 &&
-        row < rows &&
-        col >= 0 &&
-        col < cols;
-
-  }
-
-
-
-  TerminalCell cellAt(
-    int row,
-    int col,
-  ) {
-
-    return buffer[row][col];
-
-  }
-
-
-
-  TerminalCell cell(
-    int row,
-    int col,
-  ) =>
-      cellAt(row, col);
-
-
-
-  void moveCursor(
-    int row,
-    int col,
-  ) {
-
-    cursor.row =
-        row.clamp(
-          0,
-          rows - 1,
-        );
-
-    cursor.col =
-        col.clamp(
-          0,
-          cols - 1,
-        );
-
-  }
-
-
-
-  void setAttributes(
-    int fg,
-    int bg,
-    bool bold,
-    bool underline,
-    bool inverse,
-  ) {
-
-    currentForeground = fg;
-    currentBackground = bg;
-
-    this.bold = bold;
-    this.underline = underline;
-    this.inverse = inverse;
-
-  }
-
-
-
-  void write(
-    int row,
-    int col,
-    String ch,
-  ) {
-
-    if (!inBounds(row, col)) {
-      return;
-    }
-
-    buffer[row][col].char = ch;
-
-  }
-
-
-
-  void setColor(
-    int row,
-    int col,
-    int fg,
-    int bg,
-  ) {
-
-    if (!inBounds(row, col)) {
-      return;
-    }
-
-    buffer[row][col].foreground = fg;
-    buffer[row][col].background = bg;
-
-  }
-
-
+  List<String> get lines =>
+      _lines
+          .map(
+            (e) => e.toString(),
+          )
+          .toList();
 
   void clear() {
+    _allocate();
 
-    for (int r = 0; r < rows; r++) {
-
-      for (int c = 0; c < cols; c++) {
-
-        buffer[r][c].reset();
-
-      }
-
-    }
-
-
-    cursor.reset();
-
+    cursor.row = 0;
+    cursor.col = 0;
   }
-
-
 
   void clearLine(
     int row,
   ) {
-
     if (row < 0 || row >= rows) {
       return;
     }
 
+    _lines[row] = StringBuffer();
 
-    for (int c = 0; c < cols; c++) {
-
-      buffer[row][c] =
-          TerminalCell();
-
-    }
-
-  }
-
-
-
-  void scrollUp([
-    int count = 1,
-  ]) {
-
-    for (int i = 0; i < count; i++) {
-
-      buffer.removeAt(0);
-
-
-      buffer.add(
-        List.generate(
-          cols,
-          (_) => TerminalCell(),
-        ),
-      );
-
-    }
-
-  }
-
-
-
-  void scrollDown([
-    int count = 1,
-  ]) {
-
-    for (int i = 0; i < count; i++) {
-
-      buffer.removeLast();
-
-
-      buffer.insert(
-        0,
-        List.generate(
-          cols,
-          (_) => TerminalCell(),
-        ),
-      );
-
-    }
-
-  }
-
-
-
-  void putChar(
-    String ch,
-  ) {
-
-    if (!inBounds(
-      cursor.row,
-      cursor.col,
-    )) {
-      return;
-    }
-
-
-
-    buffer[cursor.row][cursor.col] =
-        TerminalCell(
-          char: ch,
-          foreground: currentForeground,
-          background: currentBackground,
-          bold: bold,
-          italic: italic,
-          underline: underline,
-          inverse: inverse,
-        );
-
-
-
-    cursor.col++;
-
-
-
-    if (cursor.col >= cols) {
-
+    if (cursor.row == row) {
       cursor.col = 0;
-
-      cursor.row++;
-
-
-      if (cursor.row >= rows) {
-
-        scrollUp();
-
-        cursor.row = rows - 1;
-
-      }
-
     }
-
   }
-
-
 
   void writeText(
     String text,
   ) {
-
     for (final rune in text.runes) {
-
-      final ch =
-          String.fromCharCode(rune);
-
+      final ch = String.fromCharCode(
+        rune,
+      );
 
       switch (ch) {
-
+        case '\r':
+          cursor.col = 0;
+          break;
 
         case '\n':
-
           cursor.row++;
-          cursor.col = 0;
 
+          cursor.col = 0;
 
           if (cursor.row >= rows) {
-
-            scrollUp();
-
-            cursor.row = rows - 1;
-
+            _scroll();
           }
-
           break;
-
-
-
-        case '\r':
-
-          cursor.col = 0;
-
-          break;
-
-
 
         case '\b':
-
           if (cursor.col > 0) {
             cursor.col--;
           }
-
           break;
 
-
-
         default:
-
-          putChar(ch);
-
+          _put(ch);
+          break;
       }
-
     }
-
   }
 
-
-
-  void insertChar(
-    int row,
-    int col,
+  void _put(
+    String ch,
   ) {
-
-    if (!inBounds(row, col)) {
-      return;
+    if (cursor.row >= rows) {
+      _scroll();
     }
 
+    if (cursor.col >= cols) {
+      cursor.row++;
+      cursor.col = 0;
 
-    for (
-      int c = cols - 1;
-      c > col;
-      c--
-    ) {
-
-      buffer[row][c] =
-          buffer[row][c - 1].copy();
-
+      if (cursor.row >= rows) {
+        _scroll();
+      }
     }
 
+    _lines[cursor.row].write(ch);
 
-    buffer[row][col] =
-        TerminalCell();
-
+    cursor.col++;
   }
 
+  void _scroll() {
+    _lines.removeAt(0);
 
+    _lines.add(
+      StringBuffer(),
+    );
 
-  void deleteChar(
-    int row,
-    int col,
-  ) {
-
-    if (!inBounds(row, col)) {
-      return;
-    }
-
-
-    for (
-      int c = col;
-      c < cols - 1;
-      c++
-    ) {
-
-      buffer[row][c] =
-          buffer[row][c + 1].copy();
-
-    }
-
-
-    buffer[row][cols - 1] =
-        TerminalCell();
-
-  }
-
-
-
-  void writeChar(String ch)
-      => putChar(ch);
-
-
-
-  void writeString(String text)
-      => writeText(text);
-
-
-
-  void cursorDown([
-    int count = 1,
-  ]) {
-
-    cursor.row =
-        (cursor.row + count).clamp(
-          0,
-          rows - 1,
-        );
-
-  }
-
-
-
-  void cursorBack([
-    int count = 1,
-  ]) {
-
-    cursor.col =
-        (cursor.col - count).clamp(
-          0,
-          cols - 1,
-        );
-
-  }
-
-
-
-  void carriageReturn() {
+    cursor.row = rows - 1;
 
     cursor.col = 0;
-
   }
 
+  String line(
+    int row,
+  ) {
+    if (row < 0 || row >= rows) {
+      return '';
+    }
 
-
-  void tab() {
-
-    final nextTab =
-        ((cursor.col ~/ 8) + 1) * 8;
-
-
-    cursor.col =
-        nextTab.clamp(
-          0,
-          cols - 1,
-        );
-
+    return _lines[row].toString();
   }
 
+  void setLine(
+    int row,
+    String text,
+  ) {
+    if (row < 0 || row >= rows) {
+      return;
+    }
+
+    _lines[row] = StringBuffer(text);
+  }
 }
