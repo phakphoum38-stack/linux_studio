@@ -6,19 +6,13 @@
 
 
 
+
+
 ConPTY::ConPTY()
+
 {
 
     hpc = nullptr;
-
-    pipe = nullptr;
-
-    running = false;
-
-
-    size.X = 80;
-
-    size.Y = 24;
 
 }
 
@@ -27,9 +21,13 @@ ConPTY::ConPTY()
 
 
 
+
 ConPTY::~ConPTY()
+
 {
+
     close();
+
 }
 
 
@@ -46,23 +44,35 @@ bool ConPTY::create(
 
     short rows,
 
-    PipeManager* manager
+    PipeManager* pipe
 
 )
+
 {
 
-    if(manager == nullptr)
+
+    if(!pipe)
+
     {
+
         return false;
+
     }
 
 
 
-    pipe = manager;
+
+
+
+
+
+    COORD size;
 
 
 
     size.X = cols;
+
+
 
     size.Y = rows;
 
@@ -71,7 +81,11 @@ bool ConPTY::create(
 
 
 
+
+
+
     HRESULT hr =
+
         CreatePseudoConsole(
 
             size,
@@ -91,29 +105,11 @@ bool ConPTY::create(
 
 
 
-    if(FAILED(hr))
-    {
 
-        hpc = nullptr;
+    return
 
-        pipe = nullptr;
+        SUCCEEDED(hr);
 
-
-        return false;
-
-    }
-
-
-
-
-
-
-
-    running = true;
-
-
-
-    return true;
 
 
 }
@@ -133,15 +129,16 @@ bool ConPTY::resize(
     short rows
 
 )
+
 {
 
 
-    if(
-        !running ||
-        hpc == nullptr
-    )
+    if(!hpc)
+
     {
+
         return false;
+
     }
 
 
@@ -149,12 +146,15 @@ bool ConPTY::resize(
 
 
 
-    COORD newSize;
+    COORD size;
 
 
-    newSize.X = cols;
 
-    newSize.Y = rows;
+    size.X = cols;
+
+
+
+    size.Y = rows;
 
 
 
@@ -163,11 +163,12 @@ bool ConPTY::resize(
 
 
     HRESULT hr =
+
         ResizePseudoConsole(
 
             hpc,
 
-            newSize
+            size
 
         );
 
@@ -176,10 +177,14 @@ bool ConPTY::resize(
 
 
 
-    if(FAILED(hr))
-    {
-        return false;
-    }
+
+    return
+
+        SUCCEEDED(hr);
+
+
+
+}
 
 
 
@@ -187,12 +192,13 @@ bool ConPTY::resize(
 
 
 
-    size = newSize;
 
 
+HPCON ConPTY::getHandle()
 
-    return true;
+{
 
+    return hpc;
 
 }
 
@@ -205,67 +211,29 @@ bool ConPTY::resize(
 
 
 void ConPTY::close()
+
 {
 
 
     if(hpc)
+
     {
 
+
         ClosePseudoConsole(
+
             hpc
+
         );
+
 
 
         hpc = nullptr;
 
+
     }
 
 
-
-
-
-    pipe = nullptr;
-
-
-    running = false;
-
-
-
-
-    size.X = 0;
-
-    size.Y = 0;
-
-
-}
-
-
-
-
-
-
-
-
-
-bool ConPTY::isRunning() const
-{
-
-    return running;
-
-}
-
-
-
-
-
-
-
-
-
-HPCON ConPTY::getHandle() const
-{
-
-    return hpc;
 
 }
 
