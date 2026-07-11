@@ -3,16 +3,22 @@
 #ifdef _WIN32
 
 #include <windows.h>
-#include <processthreadsapi.h>
+#include <string>
+
+
 
 
 
 ProcessManager::ProcessManager()
+
 {
 
     ZeroMemory(
+
         &processInfo,
+
         sizeof(processInfo)
+
     );
 
 
@@ -25,9 +31,13 @@ ProcessManager::ProcessManager()
 
 
 
+
 ProcessManager::~ProcessManager()
+
 {
+
     close();
+
 }
 
 
@@ -45,12 +55,18 @@ bool ProcessManager::start(
     const wchar_t* command
 
 )
+
 {
 
-    if(hpc == nullptr)
+
+    if(!hpc)
+
     {
+
         return false;
+
     }
+
 
 
 
@@ -58,12 +74,29 @@ bool ProcessManager::start(
 
 
     if(command == nullptr)
+
     {
 
         command =
+
             L"C:\\Windows\\System32\\cmd.exe";
 
     }
+
+
+
+
+
+
+
+
+    ZeroMemory(
+
+        &processInfo,
+
+        sizeof(processInfo)
+
+    );
 
 
 
@@ -75,7 +108,10 @@ bool ProcessManager::start(
 
 
 
+
+
     startup.StartupInfo.cb =
+
         sizeof(STARTUPINFOEXW);
 
 
@@ -84,7 +120,8 @@ bool ProcessManager::start(
 
 
 
-    SIZE_T attributeSize = 0;
+    SIZE_T size = 0;
+
 
 
 
@@ -99,7 +136,7 @@ bool ProcessManager::start(
 
         0,
 
-        &attributeSize
+        &size
 
     );
 
@@ -109,11 +146,9 @@ bool ProcessManager::start(
 
 
 
+    auto attributeList =
 
-    auto attributes =
-        reinterpret_cast<
-            LPPROC_THREAD_ATTRIBUTE_LIST
-        >(
+        reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(
 
             HeapAlloc(
 
@@ -121,7 +156,7 @@ bool ProcessManager::start(
 
                 0,
 
-                attributeSize
+                size
 
             )
 
@@ -133,11 +168,14 @@ bool ProcessManager::start(
 
 
 
+    if(!attributeList)
 
-    if(!attributes)
     {
+
         return false;
+
     }
+
 
 
 
@@ -147,15 +185,16 @@ bool ProcessManager::start(
 
     if(!InitializeProcThreadAttributeList(
 
-        attributes,
+        attributeList,
 
         1,
 
         0,
 
-        &attributeSize
+        &size
 
     ))
+
     {
 
         HeapFree(
@@ -164,7 +203,7 @@ bool ProcessManager::start(
 
             0,
 
-            attributes
+            attributeList
 
         );
 
@@ -181,53 +220,49 @@ bool ProcessManager::start(
 
 
 
+    if(!UpdateProcThreadAttribute(
 
-    BOOL updated =
+        attributeList,
 
-        UpdateProcThreadAttribute(
+        0,
 
-            attributes,
+        PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
 
-            0,
+        hpc,
 
-            PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+        sizeof(HPCON),
 
-            hpc,
+        nullptr,
 
-            sizeof(HPCON),
+        nullptr
 
-            nullptr,
+    ))
 
-            nullptr
-
-        );
-
-
-
-
-
-
-
-    if(!updated)
     {
+
 
         DeleteProcThreadAttributeList(
-            attributes
+
+            attributeList
+
         );
 
 
         HeapFree(
+
             GetProcessHeap(),
+
             0,
-            attributes
+
+            attributeList
+
         );
 
 
         return false;
 
+
     }
-
-
 
 
 
@@ -236,7 +271,8 @@ bool ProcessManager::start(
 
 
     startup.lpAttributeList =
-        attributes;
+
+        attributeList;
 
 
 
@@ -246,21 +282,7 @@ bool ProcessManager::start(
 
 
 
-    wchar_t cmdLine[512];
-
-
-
-    wcscpy_s(
-
-        cmdLine,
-
-        512,
-
-        command
-
-    );
-
-
+    std::wstring cmdLine(command);
 
 
 
@@ -274,7 +296,7 @@ bool ProcessManager::start(
 
             nullptr,
 
-            cmdLine,
+            cmdLine.data(),
 
             nullptr,
 
@@ -306,9 +328,10 @@ bool ProcessManager::start(
 
     DeleteProcThreadAttributeList(
 
-        attributes
+        attributeList
 
     );
+
 
 
 
@@ -321,7 +344,7 @@ bool ProcessManager::start(
 
         0,
 
-        attributes
+        attributeList
 
     );
 
@@ -332,10 +355,21 @@ bool ProcessManager::start(
 
 
 
-
     if(!result)
+
     {
+
+        ZeroMemory(
+
+            &processInfo,
+
+            sizeof(processInfo)
+
+        );
+
+
         return false;
+
     }
 
 
@@ -351,6 +385,7 @@ bool ProcessManager::start(
     return true;
 
 
+
 }
 
 
@@ -362,12 +397,17 @@ bool ProcessManager::start(
 
 
 bool ProcessManager::isRunning() const
+
 {
 
     if(!running)
+
     {
+
         return false;
+
     }
+
 
 
 
@@ -383,7 +423,9 @@ bool ProcessManager::isRunning() const
             0
 
         )
+
         ==
+
         WAIT_TIMEOUT;
 
 
@@ -398,10 +440,12 @@ bool ProcessManager::isRunning() const
 
 
 void ProcessManager::close()
+
 {
 
 
     if(processInfo.hProcess)
+
     {
 
 
@@ -412,6 +456,8 @@ void ProcessManager::close()
             0
 
         );
+
+
 
 
 
@@ -426,6 +472,7 @@ void ProcessManager::close()
 
 
 
+
         CloseHandle(
 
             processInfo.hProcess
@@ -434,7 +481,11 @@ void ProcessManager::close()
 
 
 
-        processInfo.hProcess = nullptr;
+
+
+        processInfo.hProcess =
+
+            nullptr;
 
 
     }
@@ -447,6 +498,7 @@ void ProcessManager::close()
 
 
     if(processInfo.hThread)
+
     {
 
 
@@ -458,7 +510,9 @@ void ProcessManager::close()
 
 
 
-        processInfo.hThread = nullptr;
+        processInfo.hThread =
+
+            nullptr;
 
 
     }
@@ -468,11 +522,12 @@ void ProcessManager::close()
 
 
 
+
     running = false;
 
 
-}
 
+}
 
 
 
