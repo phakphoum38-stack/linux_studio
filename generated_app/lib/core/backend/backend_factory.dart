@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'terminal_backend.dart';
 
-import 'pty_terminal_backend.dart';
 import 'windows_terminal_backend.dart';
+
+import 'pty_terminal_backend.dart';
+
+
 
 
 
@@ -16,11 +19,14 @@ class BackendFactory {
   {
 
 
+
     if(Platform.isWindows)
 
     {
 
+
       return WindowsTerminalBackend();
+
 
     }
 
