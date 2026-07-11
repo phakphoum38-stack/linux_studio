@@ -6,12 +6,13 @@
 
 
 
+
+
 Writer::Writer()
+
 {
 
     pipe = nullptr;
-
-    running = false;
 
 }
 
@@ -22,6 +23,7 @@ Writer::Writer()
 
 
 Writer::~Writer()
+
 {
 
     stop();
@@ -41,13 +43,11 @@ void Writer::attach(
     PipeManager* manager
 
 )
+
 {
 
+
     pipe = manager;
-
-
-    running =
-        pipe != nullptr;
 
 
 }
@@ -60,48 +60,26 @@ void Writer::attach(
 
 
 
-bool Writer::write(
+int32_t Writer::write(
 
     const char* data,
 
-    int length
+    int32_t length
 
 )
+
 {
 
-    if(
-        !running ||
-        pipe == nullptr ||
-        data == nullptr ||
-        length <= 0
-    )
+
+    if(!pipe ||
+
+       !data ||
+
+       length <= 0)
+
     {
 
-        return false;
-
-    }
-
-
-
-
-
-
-
-    HANDLE handle =
-
-        pipe->getInputWrite();
-
-
-
-
-
-
-
-
-    if(handle == nullptr)
-    {
-
-        return false;
+        return 0;
 
     }
 
@@ -124,11 +102,15 @@ bool Writer::write(
 
         WriteFile(
 
-            handle,
+            pipe->getInputWrite(),
 
             data,
 
-            length,
+            static_cast<DWORD>(
+
+                length
+
+            ),
 
             &written,
 
@@ -143,27 +125,29 @@ bool Writer::write(
 
 
 
+    if(!result)
+
+    {
+
+        return 0;
+
+    }
+
+
+
+
+
+
+
     return
 
-        result &&
+        static_cast<int32_t>(
 
-        written == static_cast<DWORD>(length);
+            written
 
-
-}
-
+        );
 
 
-
-
-
-
-
-
-bool Writer::isRunning() const
-{
-
-    return running;
 
 }
 
@@ -176,13 +160,10 @@ bool Writer::isRunning() const
 
 
 void Writer::stop()
+
 {
 
-    running = false;
-
-
     pipe = nullptr;
-
 
 }
 
