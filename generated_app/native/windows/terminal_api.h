@@ -1,15 +1,45 @@
 #pragma once
 
+
+#include <cstdint>
+
+
+
+
+
 #ifdef _WIN32
+
+
+#ifdef TERMINAL_BUILD_DLL
 
 #define TERMINAL_API __declspec(dllexport)
 
-#include <stdint.h>
+#else
 
+#define TERMINAL_API __declspec(dllimport)
 
-#ifdef __cplusplus
-extern "C" {
 #endif
+
+
+
+#else
+
+
+#define TERMINAL_API
+
+
+#endif
+
+
+
+
+
+
+
+extern "C"
+{
+
+
 
 
 
@@ -25,7 +55,11 @@ TERMINAL_API void* terminal_create(
 
 
 
-TERMINAL_API bool terminal_write(
+
+
+
+
+TERMINAL_API int32_t terminal_write(
 
     void* handle,
 
@@ -34,6 +68,10 @@ TERMINAL_API bool terminal_write(
     int32_t length
 
 );
+
+
+
+
 
 
 
@@ -53,7 +91,11 @@ TERMINAL_API int32_t terminal_read(
 
 
 
-TERMINAL_API bool terminal_resize(
+
+
+
+
+TERMINAL_API int32_t terminal_resize(
 
     void* handle,
 
@@ -62,6 +104,10 @@ TERMINAL_API bool terminal_resize(
     int32_t cols
 
 );
+
+
+
+
 
 
 
@@ -76,11 +122,4 @@ TERMINAL_API void terminal_close(
 
 
 
-
-#ifdef __cplusplus
 }
-
-#endif
-
-
-#endif
