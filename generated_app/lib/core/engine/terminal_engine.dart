@@ -1,49 +1,23 @@
 import 'dart:async';
 
 import '../backend/terminal_backend.dart';
-import '../backend/pty_terminal_backend.dart';
+
+import 'screen_buffer.dart';
 
 import 'ansi_csi_parser.dart';
-import 'screen_buffer.dart';
-import 'vt100_state_machine.dart';
+
+import 'vt100_controller.dart';
+
+
 
 
 
 class TerminalEngine {
 
 
-  TerminalEngine({
-
-    TerminalBackend? backend,
-
-    ScreenBuffer? buffer,
-
-  })
-
-      : backend =
-            backend ??
-            PtyTerminalBackend(),
-
-        buffer =
-            buffer ??
-            ScreenBuffer()
-
-  {
-
-    vt100 =
-        VT100StateMachine(
-          this.buffer,
-        );
-
-  }
-
-
-
-
-
-
 
   final TerminalBackend backend;
+
 
 
   final ScreenBuffer buffer;
@@ -51,25 +25,32 @@ class TerminalEngine {
 
 
   final AnsiCsiParser parser =
+
       AnsiCsiParser();
 
 
 
-  late final VT100StateMachine vt100;
 
 
+  final VT100Controller vt100 =
 
-  StreamSubscription<String>?
-      _outputSubscription;
+      VT100Controller();
 
 
-
-  StreamSubscription<String>?
-      _errorSubscription;
 
 
 
   Function()? onUpdate;
+
+
+
+
+
+  StreamSubscription<String>?
+
+      _outputSubscription;
+
+
 
 
 
@@ -78,6 +59,7 @@ class TerminalEngine {
 
 
   bool get isRunning =>
+
       _running;
 
 
@@ -88,14 +70,46 @@ class TerminalEngine {
 
 
 
+  TerminalEngine({
+
+    required this.backend,
+
+    ScreenBuffer? buffer,
+
+  })
+
+      :
+
+        buffer =
+
+            buffer ??
+
+            ScreenBuffer();
+
+
+
+
+
+
+
+
+
   Future<void> start()
+
   async {
 
 
+
     if(_running)
+
     {
+
       return;
+
     }
+
+
+
 
 
 
@@ -111,36 +125,16 @@ class TerminalEngine {
 
 
 
-    _errorSubscription =
-
-        backend.errors.listen(
-
-          (error){
-
-            buffer.writeText(
-
-              '\nERROR: $error\n',
-
-            );
-
-
-            onUpdate?.call();
-
-
-          },
-
-        );
-
-
-
-
-
 
     await backend.start();
 
 
 
+
+
+
     _running = true;
+
 
 
   }
@@ -158,7 +152,9 @@ class TerminalEngine {
     String data,
 
   )
+
   {
+
 
 
     final events =
@@ -179,8 +175,13 @@ class TerminalEngine {
 
     {
 
+
       vt100.handle(
+
         event,
+
+        buffer,
+
       );
 
 
@@ -195,6 +196,7 @@ class TerminalEngine {
     onUpdate?.call();
 
 
+
   }
 
 
@@ -205,23 +207,26 @@ class TerminalEngine {
 
 
 
-  Future<void> write(
+  void write(
 
     String text,
 
   )
-  async {
+
+  {
 
 
     if(!_running)
+
     {
+
       return;
+
     }
 
 
 
-
-    await backend.write(
+    backend.write(
 
       text,
 
@@ -238,24 +243,18 @@ class TerminalEngine {
 
 
 
-  Future<void> resize(
+  void resize(
 
     int cols,
 
     int rows,
 
   )
-  async {
+
+  {
 
 
-    if(!_running)
-    {
-      return;
-    }
-
-
-
-    await backend.resize(
+    backend.resize(
 
       cols,
 
@@ -279,20 +278,9 @@ class TerminalEngine {
   async {
 
 
-    if(!_running)
-    {
-      return;
-    }
+    await _outputSubscription?.cancel();
 
 
-
-    await _outputSubscription
-        ?.cancel();
-
-
-
-    await _errorSubscription
-        ?.cancel();
 
 
 
@@ -301,7 +289,11 @@ class TerminalEngine {
 
 
 
+
+
+
     _running = false;
+
 
 
   }
