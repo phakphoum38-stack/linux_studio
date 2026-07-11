@@ -28,6 +28,63 @@ class TerminalCursor {
 
 
 
+  TerminalCell cellAt(
+  int row,
+  int col,
+) {
+  return _buffer[row][col];
+}
+
+bool inBounds(
+  int row,
+  int col,
+) {
+  return row >= 0 &&
+      row < rows &&
+      col >= 0 &&
+      col < cols;
+}
+
+void putChar(
+  String c,
+) {
+  writeChar(c);
+}
+
+void cursorDown() {
+  cursor.row++;
+
+  if (cursor.row >= rows) {
+    scroll();
+  }
+}
+
+void cursorBack() {
+  if (cursor.col > 0) {
+    cursor.col--;
+  }
+}
+
+void carriageReturn() {
+  cursor.col = 0;
+}
+
+void tab() {
+  cursor.col = ((cursor.col ~/ 8) + 1) * 8;
+
+  if (cursor.col >= cols) {
+    cursor.col = cols - 1;
+  }
+}
+
+void scrollUp() {
+  scroll();
+}
+
+
+
+
+
 
 
   TerminalCursor({
