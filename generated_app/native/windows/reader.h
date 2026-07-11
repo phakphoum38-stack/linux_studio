@@ -1,24 +1,14 @@
 #pragma once
 
-#ifdef _WIN32
-
-#include <windows.h>
+#include <cstdint>
 
 #include "pipe.h"
 
 
-class Reader {
 
+class Reader
 
-private:
-
-
-    PipeManager* pipe = nullptr;
-
-
-    bool running = false;
-
-
+{
 
 public:
 
@@ -27,8 +17,6 @@ public:
 
 
     ~Reader();
-
-
 
 
 
@@ -41,21 +29,13 @@ public:
 
 
 
-
-    int read(
+    int32_t read(
 
         char* buffer,
 
-        int size
+        int32_t size
 
     );
-
-
-
-
-
-    bool isRunning() const;
-
 
 
 
@@ -64,6 +44,11 @@ public:
 
 
 
-};
 
-#endif
+private:
+
+
+    PipeManager* pipe;
+
+
+};
