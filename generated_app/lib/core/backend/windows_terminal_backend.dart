@@ -6,13 +6,19 @@ import 'terminal_backend.dart';
 
 
 
+
+
 class WindowsTerminalBackend
 
     implements TerminalBackend {
 
 
 
+
+
   final NativeTerminal terminal;
+
+
 
 
 
@@ -40,6 +46,8 @@ class WindowsTerminalBackend
 
 
 
+
+
   bool _running = false;
 
 
@@ -63,6 +71,20 @@ class WindowsTerminalBackend
             native ??
 
             NativeTerminal();
+
+
+
+
+
+
+
+
+
+  @override
+
+  bool get isRunning =>
+
+      _running;
 
 
 
@@ -114,6 +136,7 @@ class WindowsTerminalBackend
       return;
 
     }
+
 
 
 
@@ -201,6 +224,7 @@ class WindowsTerminalBackend
 
 
 
+
             if(data.isNotEmpty)
 
             {
@@ -218,7 +242,6 @@ class WindowsTerminalBackend
           },
 
         );
-
 
 
   }
@@ -240,6 +263,20 @@ class WindowsTerminalBackend
   )
 
   async {
+
+
+    if(!_running)
+
+    {
+
+      return;
+
+    }
+
+
+
+
+
 
 
     await terminal.write(
@@ -264,6 +301,20 @@ class WindowsTerminalBackend
   String read()
 
   {
+
+
+    if(!_running)
+
+    {
+
+      return '';
+
+    }
+
+
+
+
+
 
 
     return terminal.read();
@@ -292,6 +343,20 @@ class WindowsTerminalBackend
   async {
 
 
+    if(!_running)
+
+    {
+
+      return;
+
+    }
+
+
+
+
+
+
+
     await terminal.resize(
 
       cols: cols,
@@ -318,7 +383,25 @@ class WindowsTerminalBackend
   async {
 
 
+    if(!_running)
+
+    {
+
+      return;
+
+    }
+
+
+
+
+
+
+
     _running = false;
+
+
+
+
 
 
 
@@ -332,8 +415,41 @@ class WindowsTerminalBackend
 
 
 
+
+
     terminal.close();
 
+
+  }
+
+
+
+
+
+
+
+
+
+  @override
+
+  Future<void> dispose()
+
+  async {
+
+
+    await stop();
+
+
+
+
+
+
+
+    await _output.close();
+
+
+
+    await _errors.close();
 
 
   }

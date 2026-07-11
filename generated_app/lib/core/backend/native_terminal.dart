@@ -4,6 +4,8 @@ import 'terminal_ffi.dart';
 
 
 
+
+
 class NativeTerminal {
 
 
@@ -13,6 +15,8 @@ class NativeTerminal {
 
 
   bool _running = false;
+
+
 
 
 
@@ -52,6 +56,7 @@ class NativeTerminal {
 
 
 
+
     final handle =
 
         TerminalFFI.instance.create(
@@ -75,6 +80,7 @@ class NativeTerminal {
       return false;
 
     }
+
 
 
 
@@ -107,7 +113,6 @@ class NativeTerminal {
   {
 
 
-
     if(!_running ||
 
        _handle == null)
@@ -117,6 +122,7 @@ class NativeTerminal {
       return '';
 
     }
+
 
 
 
@@ -149,16 +155,18 @@ class NativeTerminal {
   async {
 
 
-
     if(!_running ||
 
-       _handle == null)
+       _handle == null ||
+
+       text.isEmpty)
 
     {
 
       return;
 
     }
+
 
 
 
@@ -195,7 +203,6 @@ class NativeTerminal {
   async {
 
 
-
     if(!_running ||
 
        _handle == null)
@@ -205,6 +212,7 @@ class NativeTerminal {
       return;
 
     }
+
 
 
 
@@ -232,10 +240,9 @@ class NativeTerminal {
 
 
 
-  void close()
+  Future<void> close()
 
-  {
-
+  async {
 
 
     if(!_running ||
@@ -265,11 +272,30 @@ class NativeTerminal {
 
 
 
+
     _handle = null;
 
 
 
     _running = false;
+
+
+  }
+
+
+
+
+
+
+
+
+
+  Future<void> dispose()
+
+  async {
+
+
+    await close();
 
 
   }

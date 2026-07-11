@@ -2,11 +2,15 @@ import 'dart:async';
 
 
 
+
+
 abstract class TerminalBackend {
 
 
 
-  /// stream ข้อมูลจาก terminal
+
+
+  /// ข้อมูล output จาก terminal
 
   Stream<String> get output;
 
@@ -14,11 +18,21 @@ abstract class TerminalBackend {
 
 
 
-  /// stream error
+
+
+  /// ข้อความ error จาก terminal
 
   Stream<String> get errors;
 
 
+
+
+
+
+
+  /// สถานะ terminal
+
+  bool get isRunning;
 
 
 
@@ -36,9 +50,7 @@ abstract class TerminalBackend {
 
 
 
-
-
-  /// ปิด terminal
+  /// ปิด terminal session
 
   Future<void> stop();
 
@@ -48,9 +60,7 @@ abstract class TerminalBackend {
 
 
 
-
-
-  /// ส่ง keyboard input
+  /// ส่ง input keyboard
 
   Future<void> write(
 
@@ -64,9 +74,7 @@ abstract class TerminalBackend {
 
 
 
-
-
-  /// อ่านข้อมูลทันที
+  /// อ่านข้อมูลล่าสุด (optional)
 
   String read();
 
@@ -76,9 +84,7 @@ abstract class TerminalBackend {
 
 
 
-
-
-  /// เปลี่ยนขนาด terminal
+  /// resize terminal
 
   Future<void> resize(
 
@@ -87,6 +93,16 @@ abstract class TerminalBackend {
     int rows,
 
   );
+
+
+
+
+
+
+
+  /// cleanup resource
+
+  Future<void> dispose();
 
 
 

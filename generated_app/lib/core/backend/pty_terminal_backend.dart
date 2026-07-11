@@ -1,26 +1,41 @@
 import 'dart:async';
+
+import 'dart:convert';
+
 import 'dart:io';
 
 import 'terminal_backend.dart';
 
 
 
+
+
 class PtyTerminalBackend
+
     implements TerminalBackend {
+
+
+
 
 
   Process? _process;
 
 
 
+
+
   final StreamController<String>
+
       _outputController =
 
       StreamController<String>.broadcast();
 
 
 
+
+
   final StreamController<String>
+
       _errorController =
 
       StreamController<String>.broadcast();
@@ -33,14 +48,36 @@ class PtyTerminalBackend
 
 
 
+  bool get isRunning =>
+
+      _running;
+
+
+
+
+
+
+
+
+
   @override
+
   Stream<String> get output =>
+
       _outputController.stream;
 
 
 
+
+
+
+
+
+
   @override
+
   Stream<String> get errors =>
+
       _errorController.stream;
 
 
@@ -52,62 +89,45 @@ class PtyTerminalBackend
 
 
   @override
+
   Future<void> start()
 
   async {
 
 
     if(_running)
+
     {
+
       return;
+
     }
 
 
 
-    try {
 
 
-      if(Platform.isWindows)
-
-      {
 
 
-        _process =
+    try
 
-            await Process.start(
-
-              'cmd.exe',
-
-              [],
-
-              runInShell:true,
-
-            );
+    {
 
 
-      }
+      _process =
 
-      else
+          await Process.start(
 
-      {
+            '/bin/bash',
 
+            [
 
-        _process =
+              '-i'
 
-            await Process.start(
+            ],
 
-              '/bin/bash',
+          );
 
-              [
-
-                '-i'
-
-              ],
-
-            );
-
-
-      }
 
 
 
@@ -120,25 +140,38 @@ class PtyTerminalBackend
 
 
 
+
+
+
+
       _process!
+
           .stdout
+
           .transform(
-            const SystemEncoding()
-                .decoder,
+
+            utf8.decoder,
+
           )
+
           .listen(
 
             (data)
 
             {
+
 
               _outputController.add(
+
                 data,
+
               );
+
 
             },
 
           );
+
 
 
 
@@ -148,28 +181,32 @@ class PtyTerminalBackend
 
 
       _process!
+
           .stderr
+
           .transform(
-            const SystemEncoding()
-                .decoder,
+
+            utf8.decoder,
+
           )
+
           .listen(
 
             (data)
 
             {
 
+
               _errorController.add(
+
                 data,
+
               );
+
 
             },
 
           );
-
-
-
-
 
 
 
@@ -179,13 +216,16 @@ class PtyTerminalBackend
 
     {
 
+
       _errorController.add(
 
         e.toString(),
 
       );
 
+
     }
+
 
 
   }
@@ -199,6 +239,7 @@ class PtyTerminalBackend
 
 
   @override
+
   Future<void> write(
 
     String text,
@@ -209,6 +250,7 @@ class PtyTerminalBackend
 
 
     if(!_running ||
+
        _process == null)
 
     {
@@ -216,6 +258,8 @@ class PtyTerminalBackend
       return;
 
     }
+
+
 
 
 
@@ -232,6 +276,7 @@ class PtyTerminalBackend
         );
 
 
+
   }
 
 
@@ -243,9 +288,11 @@ class PtyTerminalBackend
 
 
   @override
+
   String read()
 
   {
+
 
     return '';
 
@@ -260,6 +307,7 @@ class PtyTerminalBackend
 
 
   @override
+
   Future<void> resize(
 
     int cols,
@@ -271,8 +319,8 @@ class PtyTerminalBackend
   async {
 
 
-    // Native ConPTY resize
-    // จะเชื่อม FFI ในขั้นต่อไป
+    // Linux PTY resize
+    // เชื่อม native ioctl TIOCSWINSZ ภายหลัง
 
 
   }
@@ -286,20 +334,68 @@ class PtyTerminalBackend
 
 
   @override
+
   Future<void> stop()
 
   async {
+
+
+    if(!_running)
+
+    {
+
+      return;
+
+    }
+
+
+
+
+
 
 
     _running = false;
 
 
 
-    _process?.kill();
+
+
+
+
+    _process?.kill(
+
+      ProcessSignal.sigkill,
+
+    );
+
+
+
+
 
 
 
     _process = null;
+
+
+
+  }
+
+
+
+
+
+
+
+
+
+  Future<void> dispose()
+
+  async {
+
+
+    await stop();
+
+
 
 
 

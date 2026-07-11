@@ -24,17 +24,13 @@ class TerminalEngine {
 
 
 
+  late final VT100Controller vt100;
+
+
+
   final AnsiCsiParser parser =
 
       AnsiCsiParser();
-
-
-
-
-
-  final VT100Controller vt100 =
-
-      VT100Controller();
 
 
 
@@ -84,7 +80,21 @@ class TerminalEngine {
 
             buffer ??
 
-            ScreenBuffer();
+            ScreenBuffer()
+
+  {
+
+
+    vt100 =
+
+        VT100Controller(
+
+          buffer: this.buffer,
+
+        );
+
+
+  }
 
 
 
@@ -99,7 +109,6 @@ class TerminalEngine {
   async {
 
 
-
     if(_running)
 
     {
@@ -107,6 +116,7 @@ class TerminalEngine {
       return;
 
     }
+
 
 
 
@@ -126,7 +136,9 @@ class TerminalEngine {
 
 
 
+
     await backend.start();
+
 
 
 
@@ -196,7 +208,6 @@ class TerminalEngine {
     onUpdate?.call();
 
 
-
   }
 
 
@@ -207,13 +218,14 @@ class TerminalEngine {
 
 
 
-  void write(
+  Future<void> write(
 
     String text,
 
   )
 
-  {
+  async {
+
 
 
     if(!_running)
@@ -226,7 +238,11 @@ class TerminalEngine {
 
 
 
-    backend.write(
+
+
+
+
+    await backend.write(
 
       text,
 
@@ -243,7 +259,7 @@ class TerminalEngine {
 
 
 
-  void resize(
+  Future<void> resize(
 
     int cols,
 
@@ -251,10 +267,11 @@ class TerminalEngine {
 
   )
 
-  {
+  async {
 
 
-    backend.resize(
+
+    await backend.resize(
 
       cols,
 
@@ -278,7 +295,9 @@ class TerminalEngine {
   async {
 
 
-    await _outputSubscription?.cancel();
+    await _outputSubscription
+
+        ?.cancel();
 
 
 
@@ -293,7 +312,6 @@ class TerminalEngine {
 
 
     _running = false;
-
 
 
   }

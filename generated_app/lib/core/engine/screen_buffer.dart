@@ -1,10 +1,32 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
+import 'terminal_cell.dart';
+
+
+
+
+
 class TerminalCursor {
+
 
 
   int row;
 
-
   int col;
+
+
+
+  bool visible = true;
+
+
+
+  Timer? _timer;
+
+
+
+
 
 
 
@@ -15,6 +37,67 @@ class TerminalCursor {
     this.col = 0,
 
   });
+
+
+
+
+
+
+
+
+
+  void startBlink(
+
+    VoidCallback update,
+
+  )
+
+  {
+
+
+    stopBlink();
+
+
+
+    _timer = Timer.periodic(
+
+      const Duration(
+
+        milliseconds: 500,
+
+      ),
+
+      (_) {
+
+        visible = !visible;
+
+        update();
+
+      },
+
+    );
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void stopBlink()
+
+  {
+
+    _timer?.cancel();
+
+    _timer = null;
+
+  }
+
 
 
 }
@@ -31,29 +114,7 @@ class ScreenBuffer {
 
 
 
-  ScreenBuffer({
-
-    this.rows = 24,
-
-    this.cols = 80,
-
-  })
-
-  {
-
-
-    _createBuffer();
-
-
-  }
-
-
-
-
-
-
   int rows;
-
 
   int cols;
 
@@ -62,7 +123,10 @@ class ScreenBuffer {
 
 
 
-  late List<List<String>> _buffer;
+
+  late List<List<TerminalCell>> _buffer;
+
+
 
 
 
@@ -76,20 +140,67 @@ class ScreenBuffer {
 
 
 
+
+
   int currentForeground = 37;
+
 
 
   int currentBackground = 40;
 
 
 
+
+
+
+
   bool bold = false;
+
+
+
+  bool italic = false;
+
 
 
   bool underline = false;
 
 
+
   bool inverse = false;
+
+
+
+
+
+
+
+
+
+  ScreenBuffer({
+
+    this.rows = 24,
+
+    this.cols = 80,
+
+  })
+
+  {
+
+    _createBuffer();
+
+  }
+
+
+
+
+
+
+
+
+
+  List<List<TerminalCell>> get buffer =>
+
+      _buffer;
 
 
 
@@ -104,49 +215,22 @@ class ScreenBuffer {
   {
 
 
-    _buffer =
+    _buffer = List.generate(
 
-        List.generate(
+      rows,
 
-          rows,
+      (_) => List.generate(
 
-          (_) =>
+        cols,
 
-              List.generate(
+        (_) => TerminalCell(),
 
-                cols,
+      ),
 
-                (_) => ' ',
-
-              ),
-
-        );
+    );
 
 
   }
-
-
-
-
-
-
-
-
-
-  List<String> get lines =>
-
-
-      _buffer
-
-          .map(
-
-            (line)
-
-            => line.join(),
-
-          )
-
-          .toList();
 
 
 
@@ -169,7 +253,6 @@ class ScreenBuffer {
 
     rows = newRows;
 
-
     cols = newCols;
 
 
@@ -179,7 +262,6 @@ class ScreenBuffer {
 
 
     cursor.row = 0;
-
 
     cursor.col = 0;
 
@@ -212,19 +294,21 @@ class ScreenBuffer {
 
       {
 
-
         cursor.row++;
-
 
         cursor.col = 0;
 
 
+        if(cursor.row >= rows)
 
-        _scroll();
+        {
+
+          scroll();
+
+        }
 
 
         continue;
-
 
       }
 
@@ -238,12 +322,9 @@ class ScreenBuffer {
 
       {
 
-
         cursor.col = 0;
 
-
         continue;
-
 
       }
 
@@ -251,57 +332,173 @@ class ScreenBuffer {
 
 
 
+
+
+      writeChar(char);
+
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void writeChar(
+
+    String char,
+
+  )
+
+  {
+
+
+    if(cursor.row >= rows)
+
+    {
+
+      scroll();
+
+    }
+
+
+
+
+
+
+
+    if(cursor.col >= cols)
+
+    {
+
+      cursor.col = 0;
+
+      cursor.row++;
 
 
       if(cursor.row >= rows)
 
       {
 
-
-        _scroll();
-
+        scroll();
 
       }
-
-
-
-
-
-
-
-      if(cursor.col >= cols)
-
-      {
-
-
-        cursor.col = 0;
-
-
-        cursor.row++;
-
-
-        _scroll();
-
-
-      }
-
-
-
-
-
-
-
-
-      _buffer[cursor.row][cursor.col] =
-
-          char;
-
-
-
-      cursor.col++;
-
 
     }
+
+
+
+
+
+
+
+    final cell =
+
+        _buffer[cursor.row][cursor.col];
+
+
+
+
+
+
+
+    cell.char = char;
+
+
+
+    cell.foreground = currentForeground;
+
+
+
+    cell.background = currentBackground;
+
+
+
+    cell.bold = bold;
+
+
+
+    cell.italic = italic;
+
+
+
+    cell.underline = underline;
+
+
+
+    cell.inverse = inverse;
+
+
+
+
+
+
+
+    cursor.col++;
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void scroll()
+
+  {
+
+
+    if(_buffer.isEmpty)
+
+    {
+
+      return;
+
+    }
+
+
+
+
+
+
+
+    _buffer.removeAt(0);
+
+
+
+
+
+
+
+    _buffer.add(
+
+      List.generate(
+
+        cols,
+
+        (_) => TerminalCell(),
+
+      ),
+
+    );
+
+
+
+
+
+
+
+    cursor.row = rows - 1;
 
 
   }
@@ -325,8 +522,11 @@ class ScreenBuffer {
 
     cursor.row = 0;
 
-
     cursor.col = 0;
+
+
+
+    resetStyle();
 
 
   }
@@ -349,6 +549,7 @@ class ScreenBuffer {
 
 
     if(row < 0 ||
+
        row >= rows)
 
     {
@@ -361,23 +562,247 @@ class ScreenBuffer {
 
 
 
-    for(
 
-      int i = 0;
 
-      i < cols;
+    for(int col = 0;
 
-      i++
+        col < cols;
+
+        col++)
+
+    {
+
+      _buffer[row][col] =
+
+          TerminalCell();
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void eraseToEndOfLine()
+
+  {
+
+
+    for(int col = cursor.col;
+
+        col < cols;
+
+        col++)
+
+    {
+
+      _buffer[cursor.row][col] =
+
+          TerminalCell();
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void eraseToBeginningOfLine()
+
+  {
+
+
+    for(int col = 0;
+
+        col <= cursor.col;
+
+        col++)
+
+    {
+
+      _buffer[cursor.row][col] =
+
+          TerminalCell();
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void eraseToEndOfScreen()
+
+  {
+
+
+    for(int r = cursor.row;
+
+        r < rows;
+
+        r++)
+
+    {
+
+
+      int start =
+
+          r == cursor.row
+
+          ? cursor.col
+
+          : 0;
+
+
+
+      for(int c = start;
+
+          c < cols;
+
+          c++)
+
+      {
+
+        _buffer[r][c] =
+
+            TerminalCell();
+
+      }
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void eraseToBeginningOfScreen()
+
+  {
+
+
+    for(int r = 0;
+
+        r <= cursor.row;
+
+        r++)
+
+    {
+
+
+      int end =
+
+          r == cursor.row
+
+          ? cursor.col
+
+          : cols;
+
+
+
+      for(int c = 0;
+
+          c <= end && c < cols;
+
+          c++)
+
+      {
+
+        _buffer[r][c] =
+
+            TerminalCell();
+
+      }
+
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+  void resetStyle()
+
+  {
+
+
+    currentForeground = 37;
+
+    currentBackground = 40;
+
+
+
+    bold = false;
+
+    italic = false;
+
+    underline = false;
+
+    inverse = false;
+
+
+  }
+
+
+
+
+
+
+
+
+
+  List<String> get lines
+
+  {
+
+
+    return _buffer.map(
+
+      (row)
+
+      => row.map(
+
+        (cell)
+
+        => cell.char,
+
+      )
+
+      .join(),
 
     )
 
-    {
-
-
-      _buffer[row][i] = ' ';
-
-
-    }
+    .toList();
 
 
   }
@@ -390,76 +815,11 @@ class ScreenBuffer {
 
 
 
-  void _scroll()
+  void dispose()
 
   {
 
-
-    if(cursor.row < rows)
-
-    {
-
-      return;
-
-    }
-
-
-
-
-
-    _buffer.removeAt(0);
-
-
-
-    _buffer.add(
-
-      List.generate(
-
-        cols,
-
-        (_) => ' ',
-
-      ),
-
-    );
-
-
-
-    cursor.row = rows - 1;
-
-
-  }
-
-
-
-
-
-
-
-
-
-  String getLine(
-
-    int row,
-
-  )
-
-  {
-
-
-    if(row < 0 ||
-       row >= rows)
-
-    {
-
-      return '';
-
-    }
-
-
-
-    return _buffer[row].join();
-
+    cursor.stopBlink();
 
   }
 

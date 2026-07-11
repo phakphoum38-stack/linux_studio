@@ -412,59 +412,65 @@ class TerminalFFI {
 
 
 
-  bool write(
+ bool write(
 
-    Pointer<Void> handle,
+  Pointer<Void> handle,
 
-    String text,
+  String text,
 
-  )
+)
 
-  {
+{
 
 
-
-    final ptr =
-
-        text.toNativeUtf8();
+  load();
 
 
 
+  final ptr =
 
-
-
-    final result =
-
-        _write(
-
-          handle,
-
-          ptr,
-
-          text.length,
-
-        );
+      text.toNativeUtf8();
 
 
 
 
 
 
-    calloc.free(
 
-      ptr,
+  final result =
 
-    );
+      _write(
+
+        handle,
+
+        ptr,
+
+        ptr.length,
+
+      );
 
 
 
 
 
 
-    return result != 0;
+
+  calloc.free(
+
+    ptr,
+
+  );
 
 
-  }
+
+
+
+
+
+  return result != 0;
+
+
+} 
 
 
 
@@ -477,6 +483,8 @@ class TerminalFFI {
   String read(
 
     Pointer<Void> handle,
+
+    load();
 
   )
 
@@ -574,6 +582,8 @@ class TerminalFFI {
 
     int cols,
 
+    load();
+
   )
 
   {
@@ -604,6 +614,8 @@ class TerminalFFI {
 
     Pointer<Void> handle,
 
+    load();
+
   )
 
   {
@@ -618,9 +630,6 @@ class TerminalFFI {
 
   }
 
-
-
-}
 
 
 }

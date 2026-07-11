@@ -24,9 +24,7 @@ class BackendFactory {
 
     {
 
-
       return WindowsTerminalBackend();
-
 
     }
 
@@ -34,7 +32,29 @@ class BackendFactory {
 
 
 
-    return PtyTerminalBackend();
+
+
+    if(Platform.isLinux ||
+
+       Platform.isMacOS)
+
+    {
+
+      return PtyTerminalBackend();
+
+    }
+
+
+
+
+
+
+
+    throw UnsupportedError(
+
+      'Unsupported platform',
+
+    );
 
 
   }

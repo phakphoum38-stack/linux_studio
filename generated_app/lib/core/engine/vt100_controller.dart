@@ -1,30 +1,147 @@
 import 'ansi_csi_parser.dart';
+
 import 'screen_buffer.dart';
+
 import 'vt100_state_machine.dart';
 
+
+
+
+
 class VT100Controller {
-  final VT100StateMachine _machine;
+
+
+
+  final VT100StateMachine machine;
+
+
+
+
+
+
+
+
 
   VT100Controller({
+
     ScreenBuffer? buffer,
-  }) : _machine = VT100StateMachine(buffer);
+
+  })
+
+      :
+
+        machine =
+
+            VT100StateMachine(
+
+              buffer,
+
+            );
+
+
+
+
+
+
+
+
 
   void handle(
+
     AnsiEvent event,
-    ScreenBuffer target,
-  ) {
-    _machine.handle(event);
+
+  )
+
+  {
+
+
+    machine.handle(
+
+      event,
+
+    );
+
+
   }
 
+
+
+
+
+
+
+
+
   void execute(
+
     String command,
+
     List<int> args,
-    ScreenBuffer target,
-  ) {
-    _machine.process(
+
+  )
+
+  {
+
+
+    machine.execute(
+
       command,
+
       args,
-      target,
+
     );
+
+
   }
+
+
+
+
+
+
+
+
+
+  ScreenBuffer get buffer =>
+
+      machine.buffer;
+
+
+
+
+
+
+
+
+
+  int get cursorRow =>
+
+      machine.cursorRow;
+
+
+
+
+
+
+
+
+
+  int get cursorCol =>
+
+      machine.cursorCol;
+
+
+
+
+
+
+
+
+
+  bool get cursorVisible =>
+
+      machine.cursorVisible;
+
+
+
 }
