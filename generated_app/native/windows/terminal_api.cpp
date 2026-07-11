@@ -1,14 +1,14 @@
-##include "terminal_api.h"
-
+#include "terminal_api.h"
 
 #ifdef _WIN32
-
 
 #include "pipe.h"
 #include "conpty.h"
 #include "process.h"
 #include "reader.h"
 #include "writer.h"
+
+#include <cstdint>
 
 
 
@@ -31,6 +31,8 @@ struct TerminalContext
 
 
 
+
+
 extern "C"
 {
 
@@ -39,61 +41,89 @@ extern "C"
 
 
 TERMINAL_API void* terminal_create(
+
     int32_t rows,
+
     int32_t cols
+
 )
+
 {
 
+
     auto ctx =
+
         new TerminalContext();
 
 
 
+
+
+
+
     if(!ctx->pipe.createPipes())
+
     {
+
         delete ctx;
+
         return nullptr;
+
     }
+
+
+
 
 
 
 
     if(!ctx->conpty.create(
-        cols,
-        rows,
+
+        (short)cols,
+
+        (short)rows,
+
         &ctx->pipe
+
     ))
+
     {
+
         delete ctx;
+
         return nullptr;
+
     }
 
 
 
 
 
-    /*
-       IMPORTANT
 
-       ต้อง start process หลัง
-       CreatePseudoConsole()
 
-       ไม่เช่นนั้นจะได้
-       keyboard input แต่ไม่มี output
-    */
 
 
     if(!ctx->process.start(
+
         ctx->conpty.getHandle(),
+
         L"C:\\Windows\\System32\\cmd.exe"
+
     ))
+
     {
+
+        ctx->conpty.close();
+
+        ctx->pipe.close();
 
         delete ctx;
 
         return nullptr;
 
     }
+
+
 
 
 
@@ -102,14 +132,23 @@ TERMINAL_API void* terminal_create(
 
 
     ctx->reader.attach(
+
         &ctx->pipe
+
     );
+
+
+
+
 
 
 
     ctx->writer.attach(
+
         &ctx->pipe
+
     );
+
 
 
 
@@ -117,6 +156,7 @@ TERMINAL_API void* terminal_create(
 
 
     return ctx;
+
 
 }
 
@@ -129,34 +169,55 @@ TERMINAL_API void* terminal_create(
 
 
 TERMINAL_API int32_t terminal_write(
+
     void* handle,
+
     const char* data,
+
     int32_t length
+
 )
+
 {
 
 
-    if(!handle || !data)
+    if(!handle ||
+
+       !data ||
+
+       length <= 0)
+
     {
+
         return 0;
+
     }
 
 
 
+
+
+
+
     auto ctx =
+
         static_cast<TerminalContext*>(handle);
 
 
 
 
+
+
+
+
     return ctx->writer.write(
+
         data,
+
         length
-    )
-    ?
-    1
-    :
-    0;
+
+    );
+
 
 
 }
@@ -170,31 +231,52 @@ TERMINAL_API int32_t terminal_write(
 
 
 TERMINAL_API int32_t terminal_read(
+
     void* handle,
+
     char* buffer,
+
     int32_t size
+
 )
+
 {
 
 
-    if(!handle || !buffer)
+    if(!handle ||
+
+       !buffer ||
+
+       size <= 0)
+
     {
-        return -1;
+
+        return 0;
+
     }
 
 
 
 
 
+
+
     auto ctx =
+
         static_cast<TerminalContext*>(handle);
 
 
 
 
+
+
+
     return ctx->reader.read(
+
         buffer,
+
         size
+
     );
 
 
@@ -209,35 +291,50 @@ TERMINAL_API int32_t terminal_read(
 
 
 TERMINAL_API int32_t terminal_resize(
+
     void* handle,
-    int32_t cols,
-    int32_t rows
+
+    int32_t rows,
+
+    int32_t cols
+
 )
+
 {
 
 
     if(!handle)
+
     {
+
         return 0;
+
     }
 
 
 
 
+
+
+
     auto ctx =
+
         static_cast<TerminalContext*>(handle);
 
 
 
 
+
+
+
     return ctx->conpty.resize(
-        cols,
-        rows
-    )
-    ?
-    1
-    :
-    0;
+
+        (short)cols,
+
+        (short)rows
+
+    );
+
 
 
 }
@@ -251,21 +348,34 @@ TERMINAL_API int32_t terminal_resize(
 
 
 TERMINAL_API void terminal_close(
+
     void* handle
+
 )
+
 {
 
 
     if(!handle)
+
     {
+
         return;
+
     }
 
 
 
 
+
+
+
     auto ctx =
+
         static_cast<TerminalContext*>(handle);
+
+
+
 
 
 
@@ -287,12 +397,14 @@ TERMINAL_API void terminal_close(
 
 
 
+
+
+
     delete ctx;
 
 
+
 }
-
-
 
 
 
