@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-
 project(
     terminal_api
     VERSION 1.0
@@ -9,16 +8,9 @@ project(
 
 
 
-set(
-    CMAKE_CXX_STANDARD
-    20
-)
+set(CMAKE_CXX_STANDARD 20)
 
-
-set(
-    CMAKE_CXX_STANDARD_REQUIRED
-    ON
-)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 
@@ -32,9 +24,9 @@ add_library(
 
     terminal_api.cpp
 
-    pipe.cpp
-
     conpty.cpp
+
+    pipe.cpp
 
     process.cpp
 
@@ -43,6 +35,24 @@ add_library(
     writer.cpp
 
 )
+
+
+
+
+
+
+
+target_compile_definitions(
+
+    terminal_api
+
+    PRIVATE
+
+    TERMINAL_BUILD_DLL
+
+)
+
+
 
 
 
@@ -62,31 +72,27 @@ target_include_directories(
 
 
 
-target_compile_definitions(
-
-    terminal_api
-
-    PRIVATE
-
-    _WIN32_WINNT=0x0A00
-
-)
 
 
+if(WIN32)
 
 
+    target_link_libraries(
 
-target_link_libraries(
+        terminal_api
 
-    terminal_api
+        PRIVATE
 
-    PRIVATE
+        advapi32
 
-    User32
+        user32
 
-    Kernel32
+    )
 
-)
+
+endif()
+
+
 
 
 
