@@ -5,14 +5,165 @@ import 'package:ffi/ffi.dart';
 
 
 
+typedef TerminalCreateNative =
+
+    Pointer<Void> Function(
+
+      Int32 rows,
+
+      Int32 cols,
+
+    );
+
+
+
+typedef TerminalCreate =
+
+    Pointer<Void> Function(
+
+      int rows,
+
+      int cols,
+
+    );
+
+
+
+
+
+
+
+typedef TerminalWriteNative =
+
+    Int32 Function(
+
+      Pointer<Void> handle,
+
+      Pointer<Utf8> data,
+
+      Int32 length,
+
+    );
+
+
+
+typedef TerminalWrite =
+
+    int Function(
+
+      Pointer<Void> handle,
+
+      Pointer<Utf8> data,
+
+      int length,
+
+    );
+
+
+
+
+
+
+
+typedef TerminalReadNative =
+
+    Int32 Function(
+
+      Pointer<Void> handle,
+
+      Pointer<Utf8> buffer,
+
+      Int32 size,
+
+    );
+
+
+
+typedef TerminalRead =
+
+    int Function(
+
+      Pointer<Void> handle,
+
+      Pointer<Utf8> buffer,
+
+      int size,
+
+    );
+
+
+
+
+
+
+
+typedef TerminalResizeNative =
+
+    Int32 Function(
+
+      Pointer<Void> handle,
+
+      Int32 rows,
+
+      Int32 cols,
+
+    );
+
+
+
+typedef TerminalResize =
+
+    int Function(
+
+      Pointer<Void> handle,
+
+      int rows,
+
+      int cols,
+
+    );
+
+
+
+
+
+
+
+typedef TerminalCloseNative =
+
+    Void Function(
+
+      Pointer<Void> handle,
+
+    );
+
+
+
+typedef TerminalClose =
+
+    void Function(
+
+      Pointer<Void> handle,
+
+    );
+
+
+
+
+
+
+
+
+
 class TerminalFFI {
+
 
 
   TerminalFFI._();
 
 
 
-  static final TerminalFFI instance =
+  static final instance =
 
       TerminalFFI._();
 
@@ -20,96 +171,33 @@ class TerminalFFI {
 
 
 
-
-  DynamicLibrary? _library;
-
-
-
-
-
-  late final Pointer<Void> Function(
-
-      int rows,
-
-      int cols,
-
-  )
-
-  _terminalCreate;
-
-
-
-
-
-
-  late final bool Function(
-
-      Pointer<Void>,
-
-      Pointer<Utf8>,
-
-      int,
-
-  )
-
-  _terminalWrite;
-
-
-
-
-
-
-  late final int Function(
-
-      Pointer<Void>,
-
-      Pointer<Utf8>,
-
-      int,
-
-  )
-
-  _terminalRead;
-
-
-
-
-
-
-  late final bool Function(
-
-      Pointer<Void>,
-
-      int,
-
-      int,
-
-  )
-
-  _terminalResize;
-
-
-
-
-
-
-  late final void Function(
-
-      Pointer<Void>,
-
-  )
-
-  _terminalClose;
-
-
-
-
-
-
+  DynamicLibrary? _dll;
 
 
 
   bool _loaded = false;
+
+
+
+
+
+  late TerminalCreate _create;
+
+
+
+  late TerminalWrite _write;
+
+
+
+  late TerminalRead _read;
+
+
+
+  late TerminalResize _resize;
+
+
+
+  late TerminalClose _close;
 
 
 
@@ -122,6 +210,7 @@ class TerminalFFI {
   void load()
 
   {
+
 
 
     if(_loaded)
@@ -137,31 +226,15 @@ class TerminalFFI {
 
 
 
-    if(Platform.isWindows)
+    if(!Platform.isWindows)
 
     {
 
+      throw UnsupportedError(
 
-      _library =
+        'ConPTY only available on Windows',
 
-          DynamicLibrary.open(
-
-            'terminal_api.dll',
-
-          );
-
-
-    }
-
-    else
-
-    {
-
-
-      _library =
-
-          DynamicLibrary.process();
-
+      );
 
     }
 
@@ -171,8 +244,13 @@ class TerminalFFI {
 
 
 
+    _dll =
 
-    final lib = _library!;
+        DynamicLibrary.open(
+
+          'terminal_api.dll',
+
+        );
 
 
 
@@ -180,27 +258,21 @@ class TerminalFFI {
 
 
 
-    _terminalCreate =
+    final lib = _dll!;
 
-        lib
 
-        .lookupFunction<
 
-            Pointer<Void> Function(
 
-              Int32,
 
-              Int32,
 
-            ),
 
-            Pointer<Void> Function(
+    _create =
 
-              int,
+        lib.lookupFunction<
 
-              int,
+          TerminalCreateNative,
 
-            )
+          TerminalCreate
 
         >(
 
@@ -214,31 +286,13 @@ class TerminalFFI {
 
 
 
-    _terminalWrite =
+    _write =
 
-        lib
+        lib.lookupFunction<
 
-        .lookupFunction<
+          TerminalWriteNative,
 
-            Int32 Function(
-
-              Pointer<Void>,
-
-              Pointer<Utf8>,
-
-              Int32,
-
-            ),
-
-            bool Function(
-
-              Pointer<Void>,
-
-              Pointer<Utf8>,
-
-              int,
-
-            )
+          TerminalWrite
 
         >(
 
@@ -252,31 +306,13 @@ class TerminalFFI {
 
 
 
-    _terminalRead =
+    _read =
 
-        lib
+        lib.lookupFunction<
 
-        .lookupFunction<
+          TerminalReadNative,
 
-            Int32 Function(
-
-              Pointer<Void>,
-
-              Pointer<Utf8>,
-
-              Int32,
-
-            ),
-
-            int Function(
-
-              Pointer<Void>,
-
-              Pointer<Utf8>,
-
-              int,
-
-            )
+          TerminalRead
 
         >(
 
@@ -290,31 +326,13 @@ class TerminalFFI {
 
 
 
-    _terminalResize =
+    _resize =
 
-        lib
+        lib.lookupFunction<
 
-        .lookupFunction<
+          TerminalResizeNative,
 
-            Int32 Function(
-
-              Pointer<Void>,
-
-              Int32,
-
-              Int32,
-
-            ),
-
-            bool Function(
-
-              Pointer<Void>,
-
-              int,
-
-              int,
-
-            )
+          TerminalResize
 
         >(
 
@@ -328,23 +346,13 @@ class TerminalFFI {
 
 
 
-    _terminalClose =
+    _close =
 
-        lib
+        lib.lookupFunction<
 
-        .lookupFunction<
+          TerminalCloseNative,
 
-            Void Function(
-
-              Pointer<Void>,
-
-            ),
-
-            void Function(
-
-              Pointer<Void>,
-
-            )
+          TerminalClose
 
         >(
 
@@ -385,7 +393,7 @@ class TerminalFFI {
 
 
 
-    return _terminalCreate(
+    return _create(
 
       rows,
 
@@ -415,6 +423,7 @@ class TerminalFFI {
   {
 
 
+
     final ptr =
 
         text.toNativeUtf8();
@@ -423,9 +432,10 @@ class TerminalFFI {
 
 
 
+
     final result =
 
-        _terminalWrite(
+        _write(
 
           handle,
 
@@ -439,11 +449,19 @@ class TerminalFFI {
 
 
 
-    calloc.free(ptr);
+
+    calloc.free(
+
+      ptr,
+
+    );
 
 
 
-    return result;
+
+
+
+    return result != 0;
 
 
   }
@@ -465,9 +483,10 @@ class TerminalFFI {
   {
 
 
+
     final buffer =
 
-        calloc<Utf8>(
+        calloc<Uint8>(
 
           4096,
 
@@ -477,13 +496,13 @@ class TerminalFFI {
 
 
 
-    final length =
+    final result =
 
-        _terminalRead(
+        _read(
 
           handle,
 
-          buffer,
+          buffer.cast<Utf8>(),
 
           4096,
 
@@ -493,11 +512,15 @@ class TerminalFFI {
 
 
 
-    if(length <= 0)
+
+    if(result <= 0)
 
     {
 
+
       calloc.free(buffer);
+
+
 
       return '';
 
@@ -507,15 +530,20 @@ class TerminalFFI {
 
 
 
-    final result =
+
+
+    final text =
 
         buffer
 
-        .toDartString(
+            .cast<Utf8>()
 
-          length:length,
+            .toDartString(
 
-        );
+              length: result,
+
+            );
+
 
 
 
@@ -525,7 +553,7 @@ class TerminalFFI {
 
 
 
-    return result;
+    return text;
 
 
   }
@@ -542,16 +570,16 @@ class TerminalFFI {
 
     Pointer<Void> handle,
 
-    int cols,
-
     int rows,
+
+    int cols,
 
   )
 
   {
 
 
-    return _terminalResize(
+    return _resize(
 
       handle,
 
@@ -559,7 +587,7 @@ class TerminalFFI {
 
       cols,
 
-    );
+    ) != 0;
 
 
   }
@@ -581,7 +609,7 @@ class TerminalFFI {
   {
 
 
-    _terminalClose(
+    _close(
 
       handle,
 
@@ -590,6 +618,9 @@ class TerminalFFI {
 
   }
 
+
+
+}
 
 
 }
