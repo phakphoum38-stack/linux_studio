@@ -27,6 +27,19 @@ class NativeTerminal {
 
 
 
+  Future<bool> open({
+    int rows = 24,
+    int cols = 80,
+  }) async {
+    return start(
+      rows: rows,
+      cols: cols,
+   );
+  }
+
+
+
+
 
 
 
