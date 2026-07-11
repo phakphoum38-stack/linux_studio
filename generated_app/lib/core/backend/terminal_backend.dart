@@ -10,6 +10,22 @@ abstract class TerminalBackend {
 
 
 
+  /// backend กำลังทำงานอยู่หรือไม่
+  bool get isRunning;
+
+ 
+  
+  
+
+
+  /// release resource
+  void dispose();
+
+
+
+
+
+
   /// ข้อมูล output จาก terminal
 
   Stream<String> get output;
