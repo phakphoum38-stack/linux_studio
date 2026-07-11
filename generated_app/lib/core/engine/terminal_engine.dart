@@ -192,8 +192,6 @@ class TerminalEngine {
 
         event,
 
-        buffer,
-
       );
 
 
