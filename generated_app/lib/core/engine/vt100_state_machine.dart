@@ -911,5 +911,20 @@ class VT100StateMachine {
   }
 
 
+    void process(
+      AnsiEvent event,
+    ) {
+      handle(event);
+    }
+
+    void applyCommand(
+      String command,
+      List<int> args,
+    ) {
+      execute(
+        command,
+        args,
+      );
+    }
 
 }
