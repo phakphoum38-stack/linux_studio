@@ -7,9 +7,6 @@ import 'terminal_ffi.dart';
 class NativeTerminal {
 
 
-  NativeTerminal();
-
-
 
   Pointer<Void>? _handle;
 
@@ -55,7 +52,7 @@ class NativeTerminal {
 
 
 
-    _handle =
+    final handle =
 
         TerminalFFI.instance.create(
 
@@ -69,17 +66,22 @@ class NativeTerminal {
 
 
 
-    if(_handle == nullptr)
+
+
+    if(handle == nullptr)
 
     {
-
-      _handle = null;
 
       return false;
 
     }
 
 
+
+
+
+
+    _handle = handle;
 
 
 
@@ -105,7 +107,9 @@ class NativeTerminal {
   {
 
 
+
     if(!_running ||
+
        _handle == null)
 
     {
@@ -113,6 +117,7 @@ class NativeTerminal {
       return '';
 
     }
+
 
 
 
@@ -144,7 +149,9 @@ class NativeTerminal {
   async {
 
 
+
     if(!_running ||
+
        _handle == null)
 
     {
@@ -152,6 +159,7 @@ class NativeTerminal {
       return;
 
     }
+
 
 
 
@@ -187,7 +195,9 @@ class NativeTerminal {
   async {
 
 
+
     if(!_running ||
+
        _handle == null)
 
     {
@@ -200,13 +210,14 @@ class NativeTerminal {
 
 
 
+
     TerminalFFI.instance.resize(
 
       _handle!,
 
-      cols,
-
       rows,
+
+      cols,
 
     );
 
@@ -226,7 +237,9 @@ class NativeTerminal {
   {
 
 
+
     if(!_running ||
+
        _handle == null)
 
     {
@@ -239,11 +252,14 @@ class NativeTerminal {
 
 
 
+
+
     TerminalFFI.instance.close(
 
       _handle!,
 
     );
+
 
 
 
