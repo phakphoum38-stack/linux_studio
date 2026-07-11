@@ -1,22 +1,24 @@
-#include "process.h"
+#include "pipe.h"
 
 #ifdef _WIN32
 
 #include <windows.h>
-#include <processthreadsapi.h>
 
 
 
-ProcessManager::ProcessManager()
+
+
+PipeManager::PipeManager()
+
 {
 
-    ZeroMemory(
-        &processInfo,
-        sizeof(processInfo)
-    );
+    inputRead = nullptr;
 
+    inputWrite = nullptr;
 
-    running = false;
+    outputRead = nullptr;
+
+    outputWrite = nullptr;
 
 }
 
@@ -25,9 +27,13 @@ ProcessManager::ProcessManager()
 
 
 
-ProcessManager::~ProcessManager()
+
+PipeManager::~PipeManager()
+
 {
+
     close();
+
 }
 
 
@@ -38,136 +44,114 @@ ProcessManager::~ProcessManager()
 
 
 
-bool ProcessManager::start(
+bool PipeManager::createPipes()
 
-    HPCON hpc,
-
-    const wchar_t* command
-
-)
 {
 
-    if(hpc == nullptr)
-    {
-        return false;
-    }
 
+    SECURITY_ATTRIBUTES sa{};
 
 
 
+    sa.nLength =
 
+        sizeof(SECURITY_ATTRIBUTES);
 
-    if(command == nullptr)
-    {
 
-        command =
-            L"C:\\Windows\\System32\\cmd.exe";
 
-    }
+    sa.bInheritHandle =
 
+        TRUE;
 
 
 
+    sa.lpSecurityDescriptor =
 
+        nullptr;
 
 
-    STARTUPINFOEXW startup{};
 
 
 
-    startup.StartupInfo.cb =
-        sizeof(STARTUPINFOEXW);
 
 
 
 
+    // Input pipe
 
+    // Flutter -> ConPTY
 
 
-    SIZE_T attributeSize = 0;
 
+    if(!CreatePipe(
 
+        &inputRead,
 
+        &inputWrite,
 
+        &sa,
 
-
-    InitializeProcThreadAttributeList(
-
-        nullptr,
-
-        1,
-
-        0,
-
-        &attributeSize
-
-    );
-
-
-
-
-
-
-
-
-    auto attributes =
-        reinterpret_cast<
-            LPPROC_THREAD_ATTRIBUTE_LIST
-        >(
-
-            HeapAlloc(
-
-                GetProcessHeap(),
-
-                0,
-
-                attributeSize
-
-            )
-
-        );
-
-
-
-
-
-
-
-
-    if(!attributes)
-    {
-        return false;
-    }
-
-
-
-
-
-
-
-    if(!InitializeProcThreadAttributeList(
-
-        attributes,
-
-        1,
-
-        0,
-
-        &attributeSize
+        0
 
     ))
+
     {
 
-        HeapFree(
+        return false;
 
-            GetProcessHeap(),
+    }
 
-            0,
 
-            attributes
 
-        );
 
+
+
+
+    // Parent writes input
+
+    // Child reads input
+
+
+
+    SetHandleInformation(
+
+        inputWrite,
+
+        HANDLE_FLAG_INHERIT,
+
+        0
+
+    );
+
+
+
+
+
+
+
+
+
+    // Output pipe
+
+    // ConPTY -> Flutter
+
+
+
+    if(!CreatePipe(
+
+        &outputRead,
+
+        &outputWrite,
+
+        &sa,
+
+        0
+
+    ))
+
+    {
+
+        close();
 
         return false;
 
@@ -180,177 +164,29 @@ bool ProcessManager::start(
 
 
 
-
-
-    BOOL updated =
-
-        UpdateProcThreadAttribute(
-
-            attributes,
-
-            0,
-
-            PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-
-            hpc,
-
-            sizeof(HPCON),
-
-            nullptr,
-
-            nullptr
-
-        );
+    // Parent reads output
 
 
 
+    SetHandleInformation(
 
+        outputRead,
 
+        HANDLE_FLAG_INHERIT,
 
-
-    if(!updated)
-    {
-
-        DeleteProcThreadAttributeList(
-            attributes
-        );
-
-
-        HeapFree(
-            GetProcessHeap(),
-            0,
-            attributes
-        );
-
-
-        return false;
-
-    }
-
-
-
-
-
-
-
-
-
-    startup.lpAttributeList =
-        attributes;
-
-
-
-
-
-
-
-
-
-    wchar_t cmdLine[512];
-
-
-
-    wcscpy_s(
-
-        cmdLine,
-
-        512,
-
-        command
+        0
 
     );
 
 
 
-
-
-
-
-
-
-    BOOL result =
-
-        CreateProcessW(
-
-            nullptr,
-
-            cmdLine,
-
-            nullptr,
-
-            nullptr,
-
-            FALSE,
-
-            EXTENDED_STARTUPINFO_PRESENT |
-
-            CREATE_UNICODE_ENVIRONMENT,
-
-            nullptr,
-
-            nullptr,
-
-            &startup.StartupInfo,
-
-            &processInfo
-
-        );
-
-
-
-
-
-
-
-
-
-    DeleteProcThreadAttributeList(
-
-        attributes
-
-    );
-
-
-
-
-
-
-    HeapFree(
-
-        GetProcessHeap(),
-
-        0,
-
-        attributes
-
-    );
-
-
-
-
-
-
-
-
-
-    if(!result)
-    {
-        return false;
-    }
-
-
-
-
-
-
-
-    running = true;
 
 
 
     return true;
 
 
+
 }
 
 
@@ -361,31 +197,11 @@ bool ProcessManager::start(
 
 
 
-bool ProcessManager::isRunning() const
+HANDLE PipeManager::getInputRead()
+
 {
 
-    if(!running)
-    {
-        return false;
-    }
-
-
-
-
-
-
-    return
-
-        WaitForSingleObject(
-
-            processInfo.hProcess,
-
-            0
-
-        )
-        ==
-        WAIT_TIMEOUT;
-
+    return inputRead;
 
 }
 
@@ -397,45 +213,66 @@ bool ProcessManager::isRunning() const
 
 
 
-void ProcessManager::close()
+HANDLE PipeManager::getInputWrite()
+
+{
+
+    return inputWrite;
+
+}
+
+
+
+
+
+
+
+
+
+HANDLE PipeManager::getOutputRead()
+
+{
+
+    return outputRead;
+
+}
+
+
+
+
+
+
+
+
+
+HANDLE PipeManager::getOutputWrite()
+
+{
+
+    return outputWrite;
+
+}
+
+
+
+
+
+
+
+
+
+void PipeManager::close()
+
 {
 
 
-    if(processInfo.hProcess)
+    if(inputRead)
+
     {
 
+        CloseHandle(inputRead);
 
-        TerminateProcess(
-
-            processInfo.hProcess,
-
-            0
-
-        );
-
-
-
-        WaitForSingleObject(
-
-            processInfo.hProcess,
-
-            1000
-
-        );
-
-
-
-
-        CloseHandle(
-
-            processInfo.hProcess
-
-        );
-
-
-
-        processInfo.hProcess = nullptr;
-
+        inputRead = nullptr;
 
     }
 
@@ -444,22 +281,13 @@ void ProcessManager::close()
 
 
 
+    if(inputWrite)
 
-
-    if(processInfo.hThread)
     {
 
+        CloseHandle(inputWrite);
 
-        CloseHandle(
-
-            processInfo.hThread
-
-        );
-
-
-
-        processInfo.hThread = nullptr;
-
+        inputWrite = nullptr;
 
     }
 
@@ -468,11 +296,34 @@ void ProcessManager::close()
 
 
 
-    running = false;
+    if(outputRead)
+
+    {
+
+        CloseHandle(outputRead);
+
+        outputRead = nullptr;
+
+    }
+
+
+
+
+
+
+    if(outputWrite)
+
+    {
+
+        CloseHandle(outputWrite);
+
+        outputWrite = nullptr;
+
+    }
+
 
 
 }
-
 
 
 
