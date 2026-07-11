@@ -3,15 +3,17 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <cstring>
+
+
 
 
 
 Reader::Reader()
+
 {
 
     pipe = nullptr;
-
-    running = false;
 
 }
 
@@ -20,7 +22,9 @@ Reader::Reader()
 
 
 
+
 Reader::~Reader()
+
 {
 
     stop();
@@ -34,22 +38,145 @@ Reader::~Reader()
 
 
 
+
 void Reader::attach(
 
     PipeManager* manager
 
 )
+
 {
+
 
     pipe = manager;
 
 
-    running =
-        pipe != nullptr;
+}
+
+
+
+
+
+
+
+
+
+int32_t Reader::read(
+
+    char* buffer,
+
+    int32_t size
+
+)
+
+{
+
+
+    if(!pipe ||
+
+       !buffer ||
+
+       size <= 0)
+
+    {
+
+        return 0;
+
+    }
+
+
+
+
+
+
+
+
+    DWORD bytesRead = 0;
+
+
+
+
+
+
+    BOOL result =
+
+        ReadFile(
+
+            pipe->getOutputRead(),
+
+            buffer,
+
+            size - 1,
+
+            &bytesRead,
+
+            nullptr
+
+        );
+
+
+
+
+
+
+
+    if(!result ||
+
+       bytesRead == 0)
+
+    {
+
+        return 0;
+
+    }
+
+
+
+
+
+
+
+
+    buffer[bytesRead] =
+
+        '\0';
+
+
+
+
+
+
+    return
+
+        static_cast<int32_t>(
+
+            bytesRead
+
+        );
+
 
 
 }
 
+
+
+
+
+
+
+
+
+void Reader::stop()
+
+{
+
+    pipe = nullptr;
+
+}
+
+
+
+#endif
 
 
 
