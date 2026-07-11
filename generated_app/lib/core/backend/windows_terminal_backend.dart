@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'native_terminal.dart';
+
 import 'terminal_backend.dart';
 
 
@@ -11,13 +12,13 @@ class WindowsTerminalBackend
 
 
 
-  final NativeTerminal native;
+  final NativeTerminal terminal;
 
 
 
   final StreamController<String>
 
-      _outputController =
+      _output =
 
       StreamController<String>.broadcast();
 
@@ -27,7 +28,7 @@ class WindowsTerminalBackend
 
   final StreamController<String>
 
-      _errorController =
+      _errors =
 
       StreamController<String>.broadcast();
 
@@ -35,7 +36,7 @@ class WindowsTerminalBackend
 
 
 
-  Timer? _readerTimer;
+  Timer? _reader;
 
 
 
@@ -51,15 +52,15 @@ class WindowsTerminalBackend
 
   WindowsTerminalBackend({
 
-    NativeTerminal? terminal,
+    NativeTerminal? native,
 
   })
 
       :
 
-        native =
+        terminal =
 
-            terminal ??
+            native ??
 
             NativeTerminal();
 
@@ -75,7 +76,7 @@ class WindowsTerminalBackend
 
   Stream<String> get output =>
 
-      _outputController.stream;
+      _output.stream;
 
 
 
@@ -89,7 +90,7 @@ class WindowsTerminalBackend
 
   Stream<String> get errors =>
 
-      _errorController.stream;
+      _errors.stream;
 
 
 
@@ -119,25 +120,37 @@ class WindowsTerminalBackend
 
 
 
-    final ok =
+    final result =
 
-        await native.start();
+        await terminal.start(
+
+          rows: 24,
+
+          cols: 80,
+
+        );
 
 
 
-    if(!ok)
+
+
+
+
+    if(!result)
 
     {
 
-      _errorController.add(
+      _errors.add(
 
-        'Unable to start ConPTY',
+        'Cannot start Windows ConPTY',
 
       );
+
 
       return;
 
     }
+
 
 
 
@@ -151,7 +164,8 @@ class WindowsTerminalBackend
 
 
 
-    _readerTimer =
+
+    _reader =
 
         Timer.periodic(
 
@@ -164,9 +178,26 @@ class WindowsTerminalBackend
           (_) {
 
 
+            if(!_running)
+
+            {
+
+              return;
+
+            }
+
+
+
+
+
+
+
             final data =
 
-                native.read();
+                terminal.read();
+
+
+
 
 
 
@@ -174,7 +205,7 @@ class WindowsTerminalBackend
 
             {
 
-              _outputController.add(
+              _output.add(
 
                 data,
 
@@ -211,7 +242,7 @@ class WindowsTerminalBackend
   async {
 
 
-    await native.write(
+    await terminal.write(
 
       text,
 
@@ -235,7 +266,7 @@ class WindowsTerminalBackend
   {
 
 
-    return native.read();
+    return terminal.read();
 
 
   }
@@ -261,7 +292,7 @@ class WindowsTerminalBackend
   async {
 
 
-    await native.resize(
+    await terminal.resize(
 
       cols: cols,
 
@@ -291,24 +322,18 @@ class WindowsTerminalBackend
 
 
 
-    _readerTimer?.cancel();
+    _reader?.cancel();
 
 
 
-    _readerTimer = null;
+    _reader = null;
 
 
 
 
-    native.close();
 
+    terminal.close();
 
-
-    await _outputController.close();
-
-
-
-    await _errorController.close();
 
 
   }
