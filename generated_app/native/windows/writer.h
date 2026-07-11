@@ -1,26 +1,14 @@
 #pragma once
 
-#ifdef _WIN32
-
-
-#include <windows.h>
+#include <cstdint>
 
 #include "pipe.h"
 
 
 
-class Writer {
+class Writer
 
-
-private:
-
-
-    PipeManager* pipe = nullptr;
-
-
-    bool running = false;
-
-
+{
 
 public:
 
@@ -29,7 +17,6 @@ public:
 
 
     ~Writer();
-
 
 
 
@@ -43,21 +30,13 @@ public:
 
 
 
-
-    bool write(
+    int32_t write(
 
         const char* data,
 
-        int length
+        int32_t length
 
     );
-
-
-
-
-
-    bool isRunning() const;
-
 
 
 
@@ -66,7 +45,11 @@ public:
 
 
 
+
+private:
+
+
+    PipeManager* pipe;
+
+
 };
-
-
-#endif
