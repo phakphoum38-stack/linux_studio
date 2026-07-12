@@ -74,7 +74,7 @@ class ConPTYBackend implements TerminalBackend {
 
 
     _started =
-        terminal.open();
+        await terminal.open();
 
 
 
@@ -169,7 +169,7 @@ class ConPTYBackend implements TerminalBackend {
 
 
 
-    terminal.write(
+    await terminal.write(
       text,
     );
 
@@ -226,7 +226,7 @@ class ConPTYBackend implements TerminalBackend {
 
 
 
-    terminal.resize(
+    await terminal.resize(
 
       cols: cols,
 
@@ -269,7 +269,7 @@ class ConPTYBackend implements TerminalBackend {
 
 
 
-    terminal.close();
+    await terminal.close();
 
 
 

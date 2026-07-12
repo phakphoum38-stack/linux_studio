@@ -189,9 +189,7 @@ class TerminalEngine {
 
 
       vt100.handle(
-
         event,
-
       );
 
 

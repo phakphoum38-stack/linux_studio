@@ -1,16 +1,4 @@
 class TerminalCell {
-  String char;
-
-  int foreground;
-
-  int background;
-
-  bool bold;
-
-  bool underline;
-
-  bool italic;
-
   TerminalCell({
     this.char = ' ',
     this.foreground = 37,
@@ -18,19 +6,32 @@ class TerminalCell {
     this.bold = false,
     this.underline = false,
     this.italic = false,
+    this.inverse = false,
   });
 
-  int get fg => foreground;
+  String char;
+  int foreground;
+  int background;
+  bool bold;
+  bool underline;
+  bool italic;
+  bool inverse;
 
-  set fg(int value) {
-    foreground = value;
-  }
+  int get fg => foreground;
+  set fg(int value) => foreground = value;
 
   int get bg => background;
+  set bg(int value) => background = value;
 
-  set bg(int value) {
-    background = value;
-  }
+  TerminalCell copy() => TerminalCell(
+        char: char,
+        foreground: foreground,
+        background: background,
+        bold: bold,
+        underline: underline,
+        italic: italic,
+        inverse: inverse,
+      );
 
   void clear() {
     char = ' ';
@@ -39,5 +40,6 @@ class TerminalCell {
     bold = false;
     underline = false;
     italic = false;
+    inverse = false;
   }
 }

@@ -215,7 +215,7 @@ class _TerminalScreenState
 
 
 
-    terminal.clear();
+    terminal.write('\x1B[2J\x1B[H');
 
 
 

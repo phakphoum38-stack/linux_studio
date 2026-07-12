@@ -4,882 +4,228 @@ import 'package:flutter/foundation.dart';
 
 import 'terminal_cell.dart';
 
-
-
-
-
 class TerminalCursor {
-
-
+  TerminalCursor({this.row = 0, this.col = 0});
 
   int row;
-
   int col;
-
-
-
   bool visible = true;
-
-
-
   Timer? _timer;
 
-
-
-
-
-  TerminalCell cellAt(
-  int row,
-  int col,
-) {
-  return _buffer[row][col];
-}
-
-bool inBounds(
-  int row,
-  int col,
-) {
-  return row >= 0 &&
-      row < rows &&
-      col >= 0 &&
-      col < cols;
-}
-
-void putChar(
-  String c,
-) {
-  writeChar(c);
-}
-
-void cursorDown() {
-  cursor.row++;
-
-  if (cursor.row >= rows) {
-    scroll();
-  }
-}
-
-void cursorBack() {
-  if (cursor.col > 0) {
-    cursor.col--;
-  }
-}
-
-void carriageReturn() {
-  cursor.col = 0;
-}
-
-void tab() {
-  cursor.col = ((cursor.col ~/ 8) + 1) * 8;
-
-  if (cursor.col >= cols) {
-    cursor.col = cols - 1;
-  }
-}
-
-void scrollUp() {
-  scroll();
-}
-
-
-
-
-
-
-
-  TerminalCursor({
-
-    this.row = 0,
-
-    this.col = 0,
-
-  });
-
-
-
-
-
-
-
-
-
-  void startBlink(
-
-    VoidCallback update,
-
-  )
-
-  {
-
-
+  void startBlink(VoidCallback update) {
     stopBlink();
-
-
-
-    _timer = Timer.periodic(
-
-      const Duration(
-
-        milliseconds: 500,
-
-      ),
-
-      (_) {
-
-        visible = !visible;
-
-        update();
-
-      },
-
-    );
-
-
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      visible = !visible;
+      update();
+    });
   }
 
-
-
-
-
-
-
-
-
-  void stopBlink()
-
-  {
-
+  void stopBlink() {
     _timer?.cancel();
-
     _timer = null;
-
+    visible = true;
   }
-
-
-
 }
-
-
-
-
-
-
-
-
 
 class ScreenBuffer {
-
-
+  ScreenBuffer({this.rows = 24, this.cols = 80}) {
+    _createBuffer();
+  }
 
   int rows;
-
   int cols;
-
-
-
-
-
-
-
   late List<List<TerminalCell>> _buffer;
-
-
-
-
-
-
-
-  final TerminalCursor cursor =
-
-      TerminalCursor();
-
-
-
-
-
-
+  final TerminalCursor cursor = TerminalCursor();
 
   int currentForeground = 37;
-
-
-
   int currentBackground = 40;
-
-
-
-
-
-
-
   bool bold = false;
-
-
-
   bool italic = false;
-
-
-
   bool underline = false;
-
-
-
   bool inverse = false;
 
+  List<List<TerminalCell>> get buffer => _buffer;
+  List<String> get lines => _buffer
+      .map((row) => row.map((cell) => cell.char).join())
+      .toList(growable: false);
 
-
-
-
-
-
-
-
-  ScreenBuffer({
-
-    this.rows = 24,
-
-    this.cols = 80,
-
-  })
-
-  {
-
-    _createBuffer();
-
-  }
-
-
-
-
-
-
-
-
-
-  List<List<TerminalCell>> get buffer =>
-
-      _buffer;
-
-
-
-
-
-
-
-
-
-  void _createBuffer()
-
-  {
-
-
+  void _createBuffer() {
     _buffer = List.generate(
-
       rows,
-
-      (_) => List.generate(
-
-        cols,
-
-        (_) => TerminalCell(),
-
-      ),
-
+      (_) => List.generate(cols, (_) => TerminalCell()),
     );
-
-
   }
 
+  bool inBounds(int row, int col) =>
+      row >= 0 && row < rows && col >= 0 && col < cols;
 
+  TerminalCell cellAt(int row, int col) {
+    if (!inBounds(row, col)) return TerminalCell();
+    return _buffer[row][col];
+  }
 
-
-
-
-
-
-
-  void resize(
-
-    int newRows,
-
-    int newCols,
-
-  )
-
-  {
-
-
+  void resize(int newRows, int newCols) {
+    if (newRows <= 0 || newCols <= 0) return;
+    final old = _buffer;
+    final oldRows = rows;
+    final oldCols = cols;
     rows = newRows;
-
     cols = newCols;
-
-
-
     _createBuffer();
 
-
-
-    cursor.row = 0;
-
-    cursor.col = 0;
-
-
-  }
-
-
-
-
-
-
-
-
-
-  void writeText(
-
-    String text,
-
-  )
-
-  {
-
-
-    for(final char in text.split(''))
-
-    {
-
-
-      if(char == '\n')
-
-      {
-
-        cursor.row++;
-
-        cursor.col = 0;
-
-
-        if(cursor.row >= rows)
-
-        {
-
-          scroll();
-
-        }
-
-
-        continue;
-
+    final copyRows = oldRows < rows ? oldRows : rows;
+    final copyCols = oldCols < cols ? oldCols : cols;
+    for (var r = 0; r < copyRows; r++) {
+      for (var c = 0; c < copyCols; c++) {
+        _buffer[r][c] = old[r][c].copy();
       }
-
-
-
-
-
-
-
-      if(char == '\r')
-
-      {
-
-        cursor.col = 0;
-
-        continue;
-
-      }
-
-
-
-
-
-
-
-      writeChar(char);
-
-
     }
 
-
+    cursor.row = cursor.row.clamp(0, rows - 1);
+    cursor.col = cursor.col.clamp(0, cols - 1);
   }
 
-
-
-
-
-
-
-
-
-  void writeChar(
-
-    String char,
-
-  )
-
-  {
-
-
-    if(cursor.row >= rows)
-
-    {
-
-      scroll();
-
+  void writeText(String text) {
+    for (final rune in text.runes) {
+      final char = String.fromCharCode(rune);
+      switch (char) {
+        case '\n':
+          cursorDown();
+          carriageReturn();
+          break;
+        case '\r':
+          carriageReturn();
+          break;
+        case '\b':
+          cursorBack();
+          break;
+        case '\t':
+          tab();
+          break;
+        default:
+          putChar(char);
+      }
     }
+  }
 
+  void writeChar(String char) => putChar(char);
 
-
-
-
-
-
-    if(cursor.col >= cols)
-
-    {
-
+  void putChar(String char) {
+    if (rows <= 0 || cols <= 0 || char.isEmpty) return;
+    if (cursor.row >= rows) scrollUp();
+    if (cursor.col >= cols) {
       cursor.col = 0;
-
       cursor.row++;
-
-
-      if(cursor.row >= rows)
-
-      {
-
-        scroll();
-
-      }
-
+      if (cursor.row >= rows) scrollUp();
     }
 
-
-
-
-
-
-
-    final cell =
-
-        _buffer[cursor.row][cursor.col];
-
-
-
-
-
-
-
-    cell.char = char;
-
-
-
-    cell.foreground = currentForeground;
-
-
-
-    cell.background = currentBackground;
-
-
-
-    cell.bold = bold;
-
-
-
-    cell.italic = italic;
-
-
-
-    cell.underline = underline;
-
-
-
-    cell.inverse = inverse;
-
-
-
-
-
-
-
+    final cell = _buffer[cursor.row][cursor.col];
+    cell
+      ..char = char
+      ..foreground = currentForeground
+      ..background = currentBackground
+      ..bold = bold
+      ..italic = italic
+      ..underline = underline
+      ..inverse = inverse;
     cursor.col++;
-
-
   }
 
-
-
-
-
-
-
-
-
-  void scroll()
-
-  {
-
-
-    if(_buffer.isEmpty)
-
-    {
-
-      return;
-
+  void cursorDown([int amount = 1]) {
+    cursor.row += amount;
+    while (cursor.row >= rows) {
+      scrollUp();
     }
+  }
 
+  void cursorBack([int amount = 1]) {
+    cursor.col = (cursor.col - amount).clamp(0, cols - 1);
+  }
 
+  void carriageReturn() => cursor.col = 0;
 
+  void tab([int width = 8]) {
+    final next = ((cursor.col ~/ width) + 1) * width;
+    cursor.col = next.clamp(0, cols - 1);
+  }
 
+  void scroll() => scrollUp();
 
-
-
-    _buffer.removeAt(0);
-
-
-
-
-
-
-
-    _buffer.add(
-
-      List.generate(
-
-        cols,
-
-        (_) => TerminalCell(),
-
-      ),
-
-    );
-
-
-
-
-
-
-
+  void scrollUp([int count = 1]) {
+    for (var i = 0; i < count; i++) {
+      if (_buffer.isNotEmpty) _buffer.removeAt(0);
+      _buffer.add(List.generate(cols, (_) => TerminalCell()));
+    }
     cursor.row = rows - 1;
-
-
   }
 
+  void scrollDown([int count = 1]) {
+    for (var i = 0; i < count; i++) {
+      if (_buffer.isNotEmpty) _buffer.removeLast();
+      _buffer.insert(0, List.generate(cols, (_) => TerminalCell()));
+    }
+    cursor.row = cursor.row.clamp(0, rows - 1);
+  }
 
-
-
-
-
-
-
-
-  void clear()
-
-  {
-
-
+  void clear() {
     _createBuffer();
-
-
-
     cursor.row = 0;
-
     cursor.col = 0;
-
-
-
     resetStyle();
-
-
   }
 
-
-
-
-
-
-
-
-
-  void clearLine(
-
-    int row,
-
-  )
-
-  {
-
-
-    if(row < 0 ||
-
-       row >= rows)
-
-    {
-
-      return;
-
-    }
-
-
-
-
-
-
-
-    for(int col = 0;
-
-        col < cols;
-
-        col++)
-
-    {
-
-      _buffer[row][col] =
-
-          TerminalCell();
-
-    }
-
-
+  void clearLine(int row) {
+    if (row < 0 || row >= rows) return;
+    _buffer[row] = List.generate(cols, (_) => TerminalCell());
   }
 
-
-
-
-
-
-
-
-
-  void eraseToEndOfLine()
-
-  {
-
-
-    for(int col = cursor.col;
-
-        col < cols;
-
-        col++)
-
-    {
-
-      _buffer[cursor.row][col] =
-
-          TerminalCell();
-
+  void eraseToEndOfLine() {
+    if (!inBounds(cursor.row, cursor.col)) return;
+    for (var col = cursor.col; col < cols; col++) {
+      _buffer[cursor.row][col] = TerminalCell();
     }
-
-
   }
 
-
-
-
-
-
-
-
-
-  void eraseToBeginningOfLine()
-
-  {
-
-
-    for(int col = 0;
-
-        col <= cursor.col;
-
-        col++)
-
-    {
-
-      _buffer[cursor.row][col] =
-
-          TerminalCell();
-
+  void eraseToBeginningOfLine() {
+    if (cursor.row < 0 || cursor.row >= rows) return;
+    final end = cursor.col.clamp(0, cols - 1);
+    for (var col = 0; col <= end; col++) {
+      _buffer[cursor.row][col] = TerminalCell();
     }
-
-
   }
 
-
-
-
-
-
-
-
-
-  void eraseToEndOfScreen()
-
-  {
-
-
-    for(int r = cursor.row;
-
-        r < rows;
-
-        r++)
-
-    {
-
-
-      int start =
-
-          r == cursor.row
-
-          ? cursor.col
-
-          : 0;
-
-
-
-      for(int c = start;
-
-          c < cols;
-
-          c++)
-
-      {
-
-        _buffer[r][c] =
-
-            TerminalCell();
-
-      }
-
-    }
-
-
+  void eraseToEndOfScreen() {
+    eraseToEndOfLine();
+    for (var row = cursor.row + 1; row < rows; row++) clearLine(row);
   }
 
-
-
-
-
-
-
-
-
-  void eraseToBeginningOfScreen()
-
-  {
-
-
-    for(int r = 0;
-
-        r <= cursor.row;
-
-        r++)
-
-    {
-
-
-      int end =
-
-          r == cursor.row
-
-          ? cursor.col
-
-          : cols;
-
-
-
-      for(int c = 0;
-
-          c <= end && c < cols;
-
-          c++)
-
-      {
-
-        _buffer[r][c] =
-
-            TerminalCell();
-
-      }
-
-    }
-
-
+  void eraseToBeginningOfScreen() {
+    for (var row = 0; row < cursor.row; row++) clearLine(row);
+    eraseToBeginningOfLine();
   }
 
+  void insertChar() {
+    if (!inBounds(cursor.row, cursor.col)) return;
+    final line = _buffer[cursor.row];
+    line.insert(cursor.col, TerminalCell());
+    if (line.length > cols) line.removeLast();
+  }
 
+  void deleteChar() {
+    if (!inBounds(cursor.row, cursor.col)) return;
+    final line = _buffer[cursor.row];
+    line.removeAt(cursor.col);
+    line.add(TerminalCell());
+  }
 
-
-
-
-
-
-
-  void resetStyle()
-
-  {
-
-
+  void resetStyle() {
     currentForeground = 37;
-
     currentBackground = 40;
-
-
-
     bold = false;
-
     italic = false;
-
     underline = false;
-
     inverse = false;
-
-
   }
 
-
-
-
-
-
-
-
-
-  List<String> get lines
-
-  {
-
-
-    return _buffer.map(
-
-      (row)
-
-      => row.map(
-
-        (cell)
-
-        => cell.char,
-
-      )
-
-      .join(),
-
-    )
-
-    .toList();
-
-
-  }
-
-
-
-
-
-
-
-
-
-  void dispose()
-
-  {
-
-    cursor.stopBlink();
-
-  }
-
-
-
+  void dispose() => cursor.stopBlink();
 }

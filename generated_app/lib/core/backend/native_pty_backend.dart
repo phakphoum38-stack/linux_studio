@@ -27,7 +27,7 @@ class NativePtyBackend implements TerminalBackend {
 
   @override
   Future<void> start() async {
-    if (!_terminal.open()) {
+    if (!await _terminal.open()) {
       _errorController.add(
         'Failed to open native terminal.',
       );
@@ -56,7 +56,7 @@ class NativePtyBackend implements TerminalBackend {
   Future<void> write(
     String text,
   ) async {
-    _terminal.write(text);
+    await _terminal.write(text);
   }
 
   @override
@@ -69,7 +69,7 @@ class NativePtyBackend implements TerminalBackend {
     int cols,
     int rows,
   ) async {
-    _terminal.resize(
+    await _terminal.resize(
       cols: cols,
       rows: rows,
     );
@@ -80,7 +80,7 @@ class NativePtyBackend implements TerminalBackend {
     _pollTimer?.cancel();
     _pollTimer = null;
 
-    _terminal.close();
+    await _terminal.close();
 
     await _outputController.close();
     await _errorController.close();
