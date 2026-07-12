@@ -197,7 +197,7 @@ bool PipeManager::createPipes()
 
 
 
-HANDLE PipeManager::getInputRead()
+HANDLE PipeManager::getInputRead() const
 
 {
 
@@ -213,7 +213,7 @@ HANDLE PipeManager::getInputRead()
 
 
 
-HANDLE PipeManager::getInputWrite()
+HANDLE PipeManager::getInputWrite() const
 
 {
 
@@ -229,7 +229,7 @@ HANDLE PipeManager::getInputWrite()
 
 
 
-HANDLE PipeManager::getOutputRead()
+HANDLE PipeManager::getOutputRead() const
 
 {
 
@@ -245,7 +245,7 @@ HANDLE PipeManager::getOutputRead()
 
 
 
-HANDLE PipeManager::getOutputWrite()
+HANDLE PipeManager::getOutputWrite() const
 
 {
 
