@@ -48,7 +48,6 @@ class TerminalFFI {
 
   static final TerminalFFI instance = TerminalFFI._();
 
-  DynamicLibrary? _library;
   bool _loaded = false;
 
   late final _CreateDart _create;
@@ -64,7 +63,6 @@ class TerminalFFI {
     }
 
     final library = DynamicLibrary.open('terminal_api.dll');
-    _library = library;
     _create = library.lookupFunction<_CreateNative, _CreateDart>('terminal_create');
     _write = library.lookupFunction<_WriteNative, _WriteDart>('terminal_write');
     _read = library.lookupFunction<_ReadNative, _ReadDart>('terminal_read');

@@ -80,8 +80,6 @@ class WindowsTerminalBackend
 
 
 
-  @override
-
   bool get isRunning =>
 
       _running;
@@ -429,8 +427,6 @@ class WindowsTerminalBackend
 
 
 
-
-  @override
 
   Future<void> dispose()
 

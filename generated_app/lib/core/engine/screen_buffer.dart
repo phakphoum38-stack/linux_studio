@@ -196,11 +196,15 @@ class ScreenBuffer {
 
   void eraseToEndOfScreen() {
     eraseToEndOfLine();
-    for (var row = cursor.row + 1; row < rows; row++) clearLine(row);
+    for (var row = cursor.row + 1; row < rows; row++) {
+      clearLine(row);
+    }
   }
 
   void eraseToBeginningOfScreen() {
-    for (var row = 0; row < cursor.row; row++) clearLine(row);
+    for (var row = 0; row < cursor.row; row++) {
+      clearLine(row);
+    }
     eraseToBeginningOfLine();
   }
 
