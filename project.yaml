@@ -1,11 +1,15 @@
 app:
   name: Linux Studio
   package_id: com.phakphoum38.linuxstudio
-  version: 0.1.0+1
+  version: 0.2.0+2
 
 platforms:
   - ios
   - android
+  - windows
+  - macos
+  - linux
+  - web
 
 modules:
   terminal:

@@ -194,7 +194,7 @@ bool ConPTY::resize(
 
 
 
-HPCON ConPTY::getHandle()
+HPCON ConPTY::getHandle() const
 
 {
 

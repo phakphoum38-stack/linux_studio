@@ -39,6 +39,8 @@ class _TerminalScreenState
 
   bool _disposed = false;
 
+  String? _startupError;
+
 
 
 
@@ -168,8 +170,17 @@ class _TerminalScreenState
 
   async {
 
+    try {
+      await controller.start();
 
-    await controller.start();
+    } catch (error) {
+      if (!_disposed && mounted) {
+        setState(() {
+          _startupError = error.toString();
+        });
+      }
+      return;
+    }
 
 
 
@@ -273,15 +284,20 @@ class _TerminalScreenState
 
 
 
-      body:
-
-          TerminalView(
-
-            terminal,
-
-            autofocus:true,
-
-          ),
+      body: _startupError == null
+          ? TerminalView(
+              terminal,
+              autofocus: true,
+            )
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Unable to start the terminal.\n\n$_startupError',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
 
 
     );
